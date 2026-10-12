@@ -37,6 +37,9 @@ export function createScene(svg){
  function prepare(record){
   const roots=new Set();
   for(const node of record.el.querySelectorAll(MOTION)){
+   // A portal's previous drawing can remain briefly for a detail dissolve. It
+   // stays frozen in place and must not join the new scene's moving inhabitants.
+   if(node.closest('.detail-outgoing'))continue;
    const flight=node.closest('.floating-book');
    if(flight){roots.add(flight);continue;}
    // Keep a clock's trim in front of its pendulum on the same small surface.
@@ -59,7 +62,7 @@ export function createScene(svg){
    const b=bounds(el),size=Math.max(b.w,b.h),flight=el.matches('.floating-book'),pad=el.matches('.falling-leaf')?120:el.matches('.running-mouse')?Math.max(70,b.w):15;
    return{el,size,box:flight?{x:record.tx*1080,y:record.ty*1120,w:1080,h:1120}:{x:b.x-pad,y:b.y-pad,w:b.w+2*pad,h:b.h+2*pad}};
   });
-  const items=[...record.el.querySelectorAll('.book')].map(el=>({el,box:bounds(el),visible:true}));
+  const items=[...record.el.querySelectorAll('.book')].filter(el=>!el.closest('.detail-outgoing')).map(el=>({el,box:bounds(el),visible:true}));
   record.motionEl=make();record.motionEntries=[];record.rooms=[];record.items=[];
   const motionDefs=document.createElementNS(NS,'defs');record.motionEl.append(motionDefs);
   const clipCopies=new Map();
@@ -74,6 +77,7 @@ export function createScene(svg){
   function motionParent(parent){
    if(parents.has(parent))return parents.get(parent);
    const copy=parent.cloneNode(false);copy.removeAttribute('id');
+   copy.classList.remove('detail-incoming','detail-outgoing');
    if(copy.hasAttribute('clip-path'))copy.setAttribute('clip-path',motionClip(copy.getAttribute('clip-path')));
    motionParent(parent.parentElement).append(copy);parents.set(parent,copy);return copy;
   }

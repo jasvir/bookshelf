@@ -2,6 +2,7 @@ import {W,H,definitions,tileMarkup,previewMarkup,getPortal,portalSeeds,hash,esc}
 import {BOOKS,DISCOVERIES} from './catalog.js';
 import {createScene} from './scene.js';
 import {createBookReader} from './book-reader.js';
+import {createDetailTransitions} from './detail-transitions.js';
 
 const $=id=>document.getElementById(id);
 const stage=$('stage'), svg=$('world'), NS='http://www.w3.org/2000/svg';
@@ -20,6 +21,13 @@ const HOME_ZOOM=.4;
 const state={x:W*.5,y:H*.5,s:1,seed:17,depth:0,w:0,h:0,base:1,zoomOffset:0};
 let scheduled=false, animation=0, pointerGesture=null, dragged=false, toastTimer, downTarget=null;
 const pointers=new Map(), reduced=matchMedia('(prefers-reduced-motion: reduce)');
+const DETAIL_FADE_MS=180,MAX_DETAIL_TRANSITIONS=2,MAX_DETAIL_NODES=12_000;
+let skipFadesUntil=0;
+const detailTransitions=createDetailTransitions({
+ duration:DETAIL_FADE_MS,maxTransitions:MAX_DETAIL_TRANSITIONS,maxNodes:MAX_DETAIL_NODES,
+ enabled:()=>!reduced.matches&&!document.hidden&&performance.now()>=skipFadesUntil,
+ onFinish:()=>{if(!document.hidden){requestDraw();scheduleBuild();}}
+});
 let found=new Set();
 try {found=new Set(JSON.parse(localStorage.getItem('unfinished-library-finds')||'[]').filter(n=>Number.isInteger(n)&&DISCOVERIES[n]));}catch{}
 let paused=reduced.matches;
@@ -39,7 +47,10 @@ function chooseLabelScale(scale,current,allowUpgrade=true){
 const nominalQuality=scale=>QUALITY_LEVELS[QUALITY_BOUNDS.filter(b=>scale>b).length];
 function navigating(){return animation!==0||pointers.size>0||performance.now()-lastInput<160;}
 function touchNavigation(){
- lastInput=performance.now();clearTimeout(settleTimer);
+ const now=performance.now();
+ detailTransitions.finishAll();
+ if(now-lastInput<70)skipFadesUntil=now+120;
+ lastInput=now;clearTimeout(settleTimer);
  settleTimer=setTimeout(()=>{settleTimer=0;requestDraw();},180);
 }
 function chooseQuality(scale,current,allowUpgrade=true){
@@ -72,11 +83,16 @@ function updateDiscoveryCounter() {
 }
 
 function rememberTile(key,record) {
+ detailTransitions.finishOwner(record);
  for(const p of record.portals)portalRegistry.delete(p);
  scene.detach(record);tilePool.set(key,record);poolBytes+=record.bytes;poolNodes+=record.nodes;
- while(tilePool.size>MAX_POOL_ENTRIES||poolBytes>MAX_POOL_BYTES||poolNodes>MAX_POOL_NODES){const oldest=tilePool.keys().next().value,old=tilePool.get(oldest);poolBytes-=old.bytes;poolNodes-=old.nodes;tilePool.delete(oldest);}
+ while(tilePool.size>MAX_POOL_ENTRIES||poolBytes>MAX_POOL_BYTES||poolNodes>MAX_POOL_NODES){
+  const oldest=[...tilePool.keys()].find(key=>!desiredTiles.has(key))??tilePool.keys().next().value,old=tilePool.get(oldest);
+  poolBytes-=old.bytes;poolNodes-=old.nodes;tilePool.delete(oldest);
+ }
 }
 function clearTiles() {
+ detailTransitions.finishAll();
  sceneRevision++;desiredTiles.clear();buildQueue=[];
  if(buildFrame)cancelAnimationFrame(buildFrame);buildFrame=0;
  for(const [key,record] of tiles)rememberTile(key,record);
@@ -113,8 +129,22 @@ function installTile(spec,reserved=null) {
    if(content)registerPortal(record,content,p.seed,{x:tx*W+p.x,y:ty*H+p.y,w:p.w,h:p.h},p.k,1);
   }
  }
- for(const [oldKey,old] of tiles)if(oldKey!==key&&old.tx===tx&&old.ty===ty&&old.seed===seed){rememberTile(oldKey,old);tiles.delete(oldKey);}
- tiles.set(key,record);scene.attach(record,state);
+ let fade=null;
+ for(const [oldKey,old] of tiles)if(oldKey!==key&&old.tx===tx&&old.ty===ty&&old.seed===seed){
+  detailTransitions.finishOwner(old);
+  for(const p of old.portals)portalRegistry.delete(p);
+  tiles.delete(oldKey);
+  fade=detailTransitions.reserve({outgoing:[old.el,old.motionEl].filter(Boolean),owner:record,onFinish:()=>rememberTile(oldKey,old)});
+  if(!fade)rememberTile(oldKey,old);
+ }
+ tiles.set(key,record);
+ try{scene.attach(record,state);fade?.start([record.el,record.motionEl].filter(Boolean));}
+ catch(error){fade?.finish();throw error;}
+}
+function waitForDetailSlot(spec){
+ if(!detailTransitions.activeCount||reduced.matches||document.hidden||performance.now()<skipFadesUntil)return false;
+ const old=[...tiles.values()].find(record=>record.tx===spec.tx&&record.ty===spec.ty&&record.seed===spec.seed);
+ return !!old&&!detailTransitions.canStart(old.nodes);
 }
 function projectedPortalVisible(p) {
  const x=(p.x-state.x)*state.s+state.w/2,y=(p.y-state.y)*state.s+state.h/2;
@@ -131,22 +161,42 @@ function portalWork() {
  return null;
 }
 function updatePortal(p,quality,pixelScale=0) {
+ detailTransitions.finishOwner(p.record);
  scene.restore(p.record);
  const descendants=p.record.portals.filter(q=>{let a=q.parent;while(a){if(a===p)return true;a=a.parent;}return false;});
  const descendantBytes=descendants.reduce((sum,q)=>sum+q.deltaBytes,0),descendantNodes=descendants.reduce((sum,q)=>sum+q.deltaNodes,0);
+ const retiredBytes=p.allocatedBytes+descendantBytes;
+ let ghost=null,incoming=null,motionCopies=[],fade=null,retiredNodes=0;
+ if(detailTransitions.canStart()){
+  ghost=document.createElementNS(NS,'g');ghost.append(...p.content.children);p.content.append(ghost);
+  retiredNodes=ghost.querySelectorAll('*').length+1;
+  fade=detailTransitions.reserve({outgoing:[ghost],owner:p.record,onFinish:()=>{
+   for(const wrapper of [incoming,...motionCopies])if(wrapper?.parentNode)wrapper.replaceWith(...wrapper.childNodes);
+   const removedNodes=retiredNodes+1;
+   p.record.bytes-=retiredBytes;p.allocatedBytes-=retiredBytes;p.deltaBytes-=retiredBytes;
+   p.record.nodes-=removedNodes;p.allocatedNodes-=removedNodes;p.deltaNodes-=removedNodes;
+  }});
+ }
  removePortalChildren(p);
  const markup=quality==='overview'?previewMarkup(0,0,p.seed,false):cachedMarkup(0,0,p.seed,quality,pixelScale);
  const replacementBytes=markup.length-p.allocatedBytes;
- p.record.bytes+=replacementBytes-descendantBytes;p.deltaBytes+=replacementBytes;p.allocatedBytes=markup.length;
- p.content.innerHTML=markup;
+ const overlapBytes=fade?retiredBytes:0;
+ p.record.bytes+=replacementBytes-descendantBytes+overlapBytes;p.deltaBytes+=replacementBytes+overlapBytes;p.allocatedBytes=markup.length+overlapBytes;
+ if(fade){
+  incoming=document.createElementNS(NS,'g');incoming.setAttribute('data-detail-portal','');incoming.innerHTML=markup;
+  p.content.append(incoming);
+ }else p.content.innerHTML=markup;
  const replacementNodes=p.content.querySelectorAll('*').length-p.allocatedNodes;
  p.record.nodes+=replacementNodes-descendantNodes;p.deltaNodes+=replacementNodes;p.allocatedNodes+=replacementNodes;
  p.quality=quality;p.pixelScale=pixelScale;
- if(quality==='overview'){delete p.content.dataset.detailed;scene.refresh(p.record,state);return;}
- p.content.dataset.detailed=quality;
- const child=getPortal(0,0,p.seed),content=p.content.querySelector('.portal-content');
- if(content)registerPortal(p.record,content,child.seed,{x:p.x+child.x*p.unit,y:p.y+child.y*p.unit,w:child.w*p.unit,h:child.h*p.unit},p.unit*child.k,p.depth+1,p);
+ if(quality==='overview')delete p.content.dataset.detailed;
+ else{
+  p.content.dataset.detailed=quality;
+  const child=getPortal(0,0,p.seed),content=(incoming||p.content).querySelector('.portal-content');
+  if(content)registerPortal(p.record,content,child.seed,{x:p.x+child.x*p.unit,y:p.y+child.y*p.unit,w:child.w*p.unit,h:child.h*p.unit},p.unit*child.k,p.depth+1,p);
+ }
  scene.refresh(p.record,state);
+ if(fade){motionCopies=[...p.record.motionEl?.querySelectorAll('[data-detail-portal]')||[]];fade.start([incoming,...motionCopies]);}
 }
 function scheduleBuild() {
  if(buildFrame||document.hidden)return;
@@ -155,15 +205,21 @@ function scheduleBuild() {
   // Input may have queued a newer camera draw after this build callback. Let
   // that draw replace desiredTiles before constructing any obsolete shelves.
   if(scheduled){scheduleBuild();return;}
+  let waiting=false;
   while(buildQueue.length){
-   const spec=buildQueue.shift();
-   if(!desiredTiles.has(spec.key)||tiles.has(spec.key)||spec.seed!==state.seed)continue;
+   buildQueue=buildQueue.filter(spec=>desiredTiles.has(spec.key)&&!tiles.has(spec.key)&&spec.seed===state.seed);
+   if(!buildQueue.length)break;
+   // Leave old artwork visible while its fade waits, but don't hold up an empty
+   // newly exposed bay behind the overlap budget during a large zoom-out.
+   const index=buildQueue.findIndex(spec=>!waitForDetailSlot(spec));
+   if(index<0){waiting=true;break;}
+   const [spec]=buildQueue.splice(index,1);
    // The center arrives first, with the remaining tiles built in frame-sized work.
    installTile(spec);
    if(sceneRevision!==revision||performance.now()-start>6)break;
   }
-  if(!buildQueue.length&&performance.now()-start<6){const task=portalWork();if(task)updatePortal(task.p,task.quality,task.pixelScale);}
-  if(buildQueue.length||portalWork())scheduleBuild();
+  if(!buildQueue.length&&performance.now()-start<6){const task=portalWork();if(task){if(detailTransitions.activeCount&&!detailTransitions.canStart(task.p.allocatedNodes))waiting=true;else updatePortal(task.p,task.quality,task.pixelScale);}}
+  if(!waiting&&(buildQueue.length||portalWork()))scheduleBuild();
  });
 }
 function requestDraw() {if(!scheduled){scheduled=true;requestAnimationFrame(()=>{scheduled=false;render();});}}
@@ -234,7 +290,11 @@ function render() {
  for(const [key,record] of tiles)if(!needed.has(key)&&!coordinates.has(`${record.tx},${record.ty}`)){rememberTile(key,record);tiles.delete(key);}
  buildQueue=[...needed.values()].filter(q=>!tiles.has(q.key)).sort((a,b)=>Math.hypot((a.tx+.5)*W-state.x,(a.ty+.5)*H-state.y)-Math.hypot((b.tx+.5)*W-state.x,(b.ty+.5)*H-state.y));
  // Reattach already parsed nearby tiles immediately; build cold tiles in frame slices.
- buildQueue=buildQueue.filter(spec=>{if(reserved.has(spec.key)){installTile(spec,reserved.get(spec.key));return false;}return true;});
+ buildQueue=buildQueue.filter(spec=>{
+  if(!reserved.has(spec.key))return true;
+  if(waitForDetailSlot(spec)){const record=reserved.get(spec.key);rememberTile(spec.key,record);return true;}
+  installTile(spec,reserved.get(spec.key));return false;
+ });
  for(const record of tiles.values())scene.sync(record,state);
  scheduleBuild();
  const logZoom=Math.log10(state.s/state.base)+state.zoomOffset;
@@ -335,8 +395,9 @@ $('zoom-in').onclick=()=>zoomAt(1.4);$('zoom-out').onclick=()=>zoomAt(1/1.4);$('
 $('explore-btn').onclick=()=>{const p=nearestPortal();goInside(p.tx,p.ty);};
 function updateMotion(){document.body.classList.toggle('paused',paused);$('motion-btn').setAttribute('aria-pressed',String(paused));$('motion-btn').setAttribute('aria-label',paused?'Resume little animations':'Pause little animations');$('motion-btn').title=paused?'Resume little animations':'Pause little animations';}
 $('motion-btn').onclick=()=>{paused=!paused;updateMotion();};updateMotion();
-reduced.addEventListener('change',e=>{paused=e.matches;updateMotion();});
-document.addEventListener('visibilitychange',()=>{document.body.classList.toggle('is-background',document.hidden);if(!document.hidden){requestDraw();scheduleBuild();}});
+reduced.addEventListener('change',e=>{if(e.matches)detailTransitions.finishAll();paused=e.matches;updateMotion();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)detailTransitions.finishAll();document.body.classList.toggle('is-background',document.hidden);if(!document.hidden){requestDraw();scheduleBuild();}});
+window.addEventListener('pagehide',()=>detailTransitions.finishAll());
 stage.addEventListener('keydown',e=>{
  if(e.target.closest('button,a,input,select'))return;
  const actions={'ArrowLeft':()=>pan(-180),'ArrowRight':()=>pan(180),'ArrowUp':()=>pan(0,-160),'ArrowDown':()=>pan(0,160),'+':()=>zoomAt(1.35),'=':()=>zoomAt(1.35),'-':()=>zoomAt(1/1.35),'Home':home,'Enter':()=>{const p=nearestPortal();goInside(p.tx,p.ty);},'d':()=>{const next=DISCOVERIES.findIndex((_,i)=>!found.has(i));discover(next<0?0:next);}};
@@ -344,6 +405,7 @@ stage.addEventListener('keydown',e=>{
 });
 
 function saveSVG() {
+ detailTransitions.finishAll();
  const copy=svg.cloneNode(true);copy.setAttribute('xmlns',NS);copy.setAttribute('width',Math.round(state.w));copy.setAttribute('height',Math.round(state.h));copy.removeAttribute('id');
  // Capture each moving group's current local pose, including nested fish tails.
  // The downloaded picture keeps the visible moment without any running animation.
@@ -370,4 +432,4 @@ function saveSVG() {
 $('export-btn').onclick=saveSVG;
 updateDiscoveryCounter();resize(true);new ResizeObserver(()=>resize()).observe(stage);
 // Read-only diagnostics make precision, tile limits, and recursive levels inspectable.
-window.library={get state(){return {...state,parents:parents.length,tiles:tiles.size,pooledTiles:tilePool.size,pooledBytes:poolBytes,pooledNodes:poolNodes,markupBytes,portalRecords:portalRegistry.size,queuedTiles:buildQueue.length,pendingBuild:buildFrame!==0,pendingDetails:settleTimer!==0,quality:currentQuality,labelScale,discoveries:found.size};},home,zoomAt,goInside,saveSVG};
+window.library={get state(){return {...state,parents:parents.length,tiles:tiles.size,pooledTiles:tilePool.size,pooledBytes:poolBytes,pooledNodes:poolNodes,markupBytes,portalRecords:portalRegistry.size,queuedTiles:buildQueue.length,pendingBuild:buildFrame!==0,pendingDetails:settleTimer!==0,quality:currentQuality,labelScale,discoveries:found.size,fadingDetails:detailTransitions.activeCount,retiredDetailNodes:detailTransitions.retainedNodes,peakDetailNodes:detailTransitions.peakNodes};},home,zoomAt,goInside,saveSVG};

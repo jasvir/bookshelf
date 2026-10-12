@@ -71,6 +71,9 @@ button svg, .discovery-counter svg { width: 19px; height: 19px; fill: none; stro
 #world .book:hover { filter: brightness(1.12); }
 :is(#world,#motion-world) .discovery:hover { filter: brightness(1.15) drop-shadow(0 0 3px #fee8a4); }
 #world .portal:hover { filter: brightness(1.16); }
+.detail-incoming { animation: detail-arrive var(--detail-duration, 180ms) ease-out both; }
+.detail-outgoing, .detail-outgoing * { pointer-events: none !important; animation-play-state: paused !important; }
+@keyframes detail-arrive { from { opacity: 0; } to { opacity: 1; } }
 /* Decorative foliage can drape over a spine or plaque without hiding its tap target. */
 #world .trailing-vine { pointer-events: none; }
 
@@ -518,6 +521,7 @@ body.paused .play-icon, #motion-btn[aria-pressed="true"] .play-icon { display: b
   .running-mouse, .flying-book-motion, .twinkle, .swimming-fish,
   .fish-tail, .clock-pendulum, .falling-leaf, .rocking-horse { animation: none; }
   .nano-writing-hand { animation: none; }
+  .detail-incoming { animation: none; }
   .button { transition: none; }
   .social-link { transition: none; }
   .book-reader.is-opening :is(.reader-volume, .reader-cover, .reader-title-leaf, .reader-page-edge),
