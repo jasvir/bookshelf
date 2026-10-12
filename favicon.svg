@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <title>The Unfinished Library</title>
+  <rect width="32" height="32" rx="7" fill="#294139"/>
+  <g stroke="#172c29" stroke-width="1" stroke-linejoin="round">
+    <rect x="5" y="11" width="5" height="13" rx="1" fill="#ef4452"/>
+    <rect x="11" y="6" width="6" height="18" rx="1" fill="#f4cb37"/>
+    <g transform="rotate(-12 23 24)">
+      <rect x="20" y="8" width="5" height="16" rx="1" fill="#39bceb"/>
+      <path d="M21 11h3M21 21h3" stroke="#fff0ab"/>
+    </g>
+  </g>
+  <path d="M6 14h3M6 21h3M12 9h4M12 21h4" stroke="#fff0ab"/>
+  <rect x="4" y="25" width="24" height="2" rx="1" fill="#ffe068"/>
+</svg>

@@ -34,9 +34,9 @@ function inlineModule(name, source, namespace) {
   return `// ${name}\nconst { ${names} } = (() => {\n${stripModule(source)}\nreturn { ${names} };\n})();`;
 }
 
-const [htmlSource, cssSource, catalogSource, motifsSource, booksSource, shelvesSource, foliageSource, hatTilesSource, mathShelvesSource, artSource, sceneSource, appSource] = await Promise.all([
+const [htmlSource, cssSource, catalogSource, motifsSource, booksSource, shelvesSource, foliageSource, hatTilesSource, mathShelvesSource, artSource, sceneSource, appSource, faviconSource] = await Promise.all([
   read('index.html'), read('styles.css'), read('catalog.js'),
-  read('motifs.js'), read('books.js'), read('shelves.js'), read('foliage.js'), read('hat-tiles.js'), read('math-shelves.js'), read('art.js'), read('scene.js'), read('app.js')
+  read('motifs.js'), read('books.js'), read('shelves.js'), read('foliage.js'), read('hat-tiles.js'), read('math-shelves.js'), read('art.js'), read('scene.js'), read('app.js'), read('favicon.svg')
 ]);
 const script = [
   inlineModule('catalog.js', catalogSource, catalogModule),
@@ -63,10 +63,12 @@ try {
 
 const cssTag = '<link rel="stylesheet" href="styles.css" />';
 const scriptTag = '<script type="module" src="app.js"></script>';
-if (!htmlSource.includes(cssTag) || !htmlSource.includes(scriptTag)) {
-  throw new Error('The stylesheet or module entry tag changed; update the bundler markers.');
+const faviconTag = '<link rel="icon" type="image/svg+xml" sizes="any" href="favicon.svg" />';
+if (!htmlSource.includes(cssTag) || !htmlSource.includes(scriptTag) || !htmlSource.includes(faviconTag)) {
+  throw new Error('The stylesheet, module entry, or favicon tag changed; update the bundler markers.');
 }
 const bundledHTML = htmlSource
+  .replace(faviconTag, () => `<link rel="icon" type="image/svg+xml" sizes="any" href="data:image/svg+xml,${encodeURIComponent(faviconSource.trim())}" />`)
   .replace(cssTag, () => `<style>\n${cssSource.replace(/<\/style/gi, '<\\/style')}\n</style>`)
   .replace(scriptTag, () => `<script type="module">\n${script.replace(/<\/script/gi, '<\\/script')}\n</script>`);
 if (/<script\b[^>]*\bsrc\s*=|<link\b[^>]*\brel\s*=\s*['"]stylesheet['"]/i.test(bundledHTML)) {
