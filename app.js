@@ -1,6 +1,7 @@
 import {W,H,definitions,tileMarkup,previewMarkup,getPortal,portalSeeds,hash,esc} from './art.js';
 import {BOOKS,DISCOVERIES} from './catalog.js';
 import {createScene} from './scene.js';
+import {createBookReader} from './book-reader.js';
 
 const $=id=>document.getElementById(id);
 const stage=$('stage'), svg=$('world'), NS='http://www.w3.org/2000/svg';
@@ -22,6 +23,11 @@ const pointers=new Map(), reduced=matchMedia('(prefers-reduced-motion: reduce)')
 let found=new Set();
 try {found=new Set(JSON.parse(localStorage.getItem('unfinished-library-finds')||'[]').filter(n=>Number.isInteger(n)&&DISCOVERIES[n]));}catch{}
 let paused=reduced.matches;
+const reader=createBookReader({
+ onOpen:()=>{clearTimeout(toastTimer);$('book-toast').hidden=true;document.body.classList.add('is-reading');},
+ onClose:()=>{document.body.classList.remove('is-reading');stage.focus({preventScroll:true});},
+ announce
+});
 
 const QUALITY_LEVELS=['overview','distant','compact','full'], QUALITY_BOUNDS=[.12,.48,.95];
 const labelBucket=scale=>2**(Math.floor(Math.log2(scale)*2)/2);
@@ -45,10 +51,17 @@ function chooseQuality(scale,current,allowUpgrade=true){
 
 function announce(text) {$('status').textContent=text;}
 function toast(title,subtitle='',body='') {
+ reader.cancelOffer();
  $('book-toast').innerHTML=`<strong>${esc(title)}</strong>${body?`<span style="display:block;font-size:12px;margin-top:5px">${esc(body)}</span>`:''}${subtitle?`<small>${esc(subtitle)}</small>`:''}`;
  $('book-toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('book-toast').hidden=true,6500);
 }
-function bookNote(id) {const b=BOOKS[id];if(!b)return;toast(b.title,`A little twist on ${b.original} · ${b.author}`,b.blurb);}
+function bookNote(id,source) {const b=BOOKS[id];if(!b)return;toast(b.title,`A little twist on ${b.original} · ${b.author}`,b.blurb);void reader.offer(b,source);}
+function pauseToast(){clearTimeout(toastTimer);}
+function resumeToast(){clearTimeout(toastTimer);toastTimer=setTimeout(()=>{$('book-toast').hidden=true;reader.cancelOffer();},6500);}
+$('book-toast').addEventListener('pointerenter',pauseToast);
+$('book-toast').addEventListener('pointerleave',resumeToast);
+$('book-toast').addEventListener('focusin',pauseToast);
+$('book-toast').addEventListener('focusout',e=>{if(!$('book-toast').contains(e.relatedTarget))resumeToast();});
 function discover(id) {
  const d=DISCOVERIES[id];if(!d)return;const fresh=!found.has(id);found.add(id);
  try{localStorage.setItem('unfinished-library-finds',JSON.stringify([...found]));}catch{}
@@ -264,6 +277,7 @@ function goInside(tx,ty) {
  flyTo(tx*W+p.x+p.w/2,ty*H+p.y+p.h/2,s,1100);
 }
 function home(){
+ reader.close(true);reader.cancelOffer();
  cancelFlight();clearTimeout(settleTimer);settleTimer=0;lastInput=-Infinity;
  const held=[...pointers.keys()];pointers.clear();pointerGesture=null;downTarget=null;dragged=held.length>0;
  stage.classList.remove('is-dragging');for(const id of held)if(stage.hasPointerCapture?.(id))stage.releasePointerCapture(id);
@@ -308,8 +322,9 @@ stage.addEventListener('click',e=>{
  if(dragged){dragged=false;return;}
  const target=e.target===stage&&downTarget?.isConnected?downTarget:e.target;
  downTarget=null;
- const f=target.closest('[data-find]'),b=target.closest('[data-book]');
- if(f){discover(Number(f.dataset.find));return;}if(b){bookNote(Number(b.dataset.book));return;}
+ const item=target.closest('[data-find],[data-book]');
+ if(item?.hasAttribute('data-book')){bookNote(Number(item.dataset.book),item);return;}
+ if(item){discover(Number(item.dataset.find));return;}
  let portal=target.closest('.portal');if(portal){while(portal.parentElement.closest('.portal'))portal=portal.parentElement.closest('.portal');const [x,y]=portal.dataset.portal.split(',').map(Number);goInside(x,y);}
 });
 stage.addEventListener('dblclick',e=>{if(e.target.closest('button,a'))return;const rect=stageRect;zoomAt(1.8,e.clientX-rect.left,e.clientY-rect.top);});

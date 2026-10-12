@@ -395,7 +395,7 @@ function gardenbook() {
     <path d="M-57 -151Q-12 -161 44 -151l5 143Q-1 -18 -57 -7Z" fill="#8c4f62"/>
     <path d="M-51 -149Q-9 -159 45 -149l2 6Q-5 -152 -49 -140Z" fill="#eee0b5"/>
     ${line('M-45 -147Q-2 -155 39 -148M-43 -144Q-2 -151 37 -145', '#ad906c', .7, .55)}
-    <path d="M-48 -142Q-7 -151 48 -141l8 134Q1 -19 -48 -6Z" fill="#b04f70"/>
+    <path class="book-cover" d="M-48 -142Q-7 -151 48 -141l8 134Q1 -19 -48 -6Z" fill="#b04f70"/>
     <path d="M-57 -151l9 9V-6l-9 -1Z" fill="#713d53"/>
     <path d="M-54 -149l2 139" fill="none" stroke="#c67b81" stroke-width="1.5"/>
     ${[-137, -126, -25, -15].map(y => `<path d="M-57 ${y}l9 2v4l-9 -2Z" fill="#d3a856" stroke-width=".6"/>`).join('')}
@@ -933,7 +933,7 @@ function distantMotif(kind, seed, token, animate) {
     case 'gardenbook': return s(54) +
       p('M-57 -151Q-12 -161 44 -151l5 143Q-1 -18 -57 -7Z', '#8c4f62') +
       p('M-51 -149Q-9 -159 45 -149l2 6Q-5 -152 -49 -140Z', '#eee0b5') +
-      p('M-48 -142Q-7 -151 48 -141l8 134Q1 -19 -48 -6Z', '#b04f70') +
+      p('M-48 -142Q-7 -151 48 -141l8 134Q1 -19 -48 -6Z', '#b04f70', ' class="book-cover"') +
       p('M-34 -25v-72Q-34 -131 1 -135Q35 -133 37 -99l5 74Q2 -34 -34 -25Z', '#79c7cc') + dot(21, -103, 8, '#f0d27b') +
       p('M-33 -77Q-13 -89 5 -73Q25 -87 38 -73l3 43Q5 -35 -33 -29Z', '#90ad78') +
       p('M-20 -48l2 -43h5l1 43Z', '#6f6750') +

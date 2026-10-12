@@ -12,6 +12,8 @@ import * as hatTilesModule from './hat-tiles.js';
 import * as mathShelvesModule from './math-shelves.js';
 import * as artModule from './art.js';
 import * as sceneModule from './scene.js';
+import * as nanoModule from './nano.js';
+import * as readerModule from './book-reader.js';
 
 const { W, H, definitions, tileMarkup } = artModule;
 const run = promisify(execFile);
@@ -34,9 +36,9 @@ function inlineModule(name, source, namespace) {
   return `// ${name}\nconst { ${names} } = (() => {\n${stripModule(source)}\nreturn { ${names} };\n})();`;
 }
 
-const [htmlSource, cssSource, catalogSource, motifsSource, booksSource, shelvesSource, foliageSource, hatTilesSource, mathShelvesSource, artSource, sceneSource, appSource, faviconSource] = await Promise.all([
+const [htmlSource, cssSource, catalogSource, motifsSource, booksSource, shelvesSource, foliageSource, hatTilesSource, mathShelvesSource, artSource, sceneSource, nanoSource, readerSource, appSource, faviconSource] = await Promise.all([
   read('index.html'), read('styles.css'), read('catalog.js'),
-  read('motifs.js'), read('books.js'), read('shelves.js'), read('foliage.js'), read('hat-tiles.js'), read('math-shelves.js'), read('art.js'), read('scene.js'), read('app.js'), read('favicon.svg')
+  read('motifs.js'), read('books.js'), read('shelves.js'), read('foliage.js'), read('hat-tiles.js'), read('math-shelves.js'), read('art.js'), read('scene.js'), read('nano.js'), read('book-reader.js'), read('app.js'), read('favicon.svg')
 ]);
 const script = [
   inlineModule('catalog.js', catalogSource, catalogModule),
@@ -48,6 +50,8 @@ const script = [
   inlineModule('math-shelves.js', mathShelvesSource, mathShelvesModule),
   inlineModule('art.js', artSource, artModule),
   inlineModule('scene.js', sceneSource, sceneModule),
+  inlineModule('nano.js', nanoSource, nanoModule),
+  inlineModule('book-reader.js', readerSource, readerModule),
   `// app.js\n${stripModule(appSource)}`
 ].join('\n\n');
 
@@ -80,7 +84,7 @@ const width = W * 2;
 const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${H}" viewBox="0 0 ${width} ${H}" role="img" aria-labelledby="library-title library-description">
   <title id="library-title">The Unfinished Library — two shelves of possibility</title>
-  <desc id="library-description">An illustrated bookshelf with dark wooden boards and alcoves, vivid covers, 200 literary pun titles, closely packed and deliberately leaning books, curved and folding shelves joined to the case, Penrose and Hat tiling compartments, impossible triangles, cubes and tridents, stairways connected to shelf boards and miniature libraries inside archways. Potted ferns, flowers and trailing vines grow among tiny mice, toadstools, owls, toy houses, rocking horses, fishbowls and pendulum clocks. A finite, still vector keepsake from a webpage where fish swim, pendulums swing, toy horses rock, occasional leaves drift down and a few winged books wander through the shelves. Illustrative inspiration: Colin Thompson. https://en.wikipedia.org/wiki/Colin_Thompson_(writer) Hat geometry: David Smith, Joseph Samuel Myers, Craig S. Kaplan and Chaim Goodman-Strauss. https://cs.uwaterloo.ca/~csk/hat/</desc>
+  <desc id="library-description">An illustrated bookshelf with dark wooden boards and alcoves, vivid covers, literary pun titles, closely packed and deliberately leaning books, curved and folding shelves joined to the case, Penrose and Hat tiling compartments, impossible triangles, cubes and tridents, stairways connected to shelf boards and miniature libraries inside archways. Potted ferns, flowers and trailing vines grow among tiny mice, toadstools, owls, toy houses, rocking horses, fishbowls and pendulum clocks. A finite, still vector keepsake from a webpage where fish swim, pendulums swing, toy horses rock, occasional leaves drift down and a few winged books wander through the shelves. Illustrative inspiration: Colin Thompson. https://en.wikipedia.org/wiki/Colin_Thompson_(writer) Hat geometry: David Smith, Joseph Samuel Myers, Craig S. Kaplan and Chaim Goodman-Strauss. https://cs.uwaterloo.ca/~csk/hat/</desc>
   ${definitions}
   <rect width="${width}" height="${H}" fill="#e5c49a"/>
   ${tileMarkup(0, 0, seed, true, true)}

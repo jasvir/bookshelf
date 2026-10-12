@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f4efdf" />
-    <meta name="description" content="Wander through an infinite illustrated library of 200 literary puns, curling shelves, impossible curios, Penrose and Hat compartments, and very small inhabitants." />
+    <meta name="description" content="Wander through an infinite illustrated library of punning book titles and quirky toys. If you're running Chrome and Gemini Nano is available, you can look inside some books for the start of the story that no one else has dreamt of so far!" />
     <title>The Unfinished Library</title>
     <link rel="icon" type="image/svg+xml" sizes="any" href="favicon.svg" />
     <link rel="stylesheet" href="styles.css" />
@@ -37,7 +37,7 @@
     </header>
 
     <main id="stage" class="stage" tabindex="0" aria-label="Interactive illustrated bookshelf. Drag to wander, scroll to zoom. Use arrow keys to move and plus or minus to zoom.">
-      <svg id="world" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="An endless whimsical bookshelf with 200 literary puns, curved and folding shelves, Penrose and Hat compartments, impossible curios and stairways, tiny mice, toys, and toadstools" preserveAspectRatio="xMidYMid slice">
+      <svg id="world" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="An endless whimsical bookshelf with literary puns, curved and folding shelves, Penrose and Hat compartments, impossible curios and stairways, tiny mice, toys, and toadstools" preserveAspectRatio="xMidYMid slice">
         <title>The Unfinished Library</title>
         <desc>A bright illustrated library of curling shelves, colourful books, potted plants and trailing vines that continues in every direction and within its own smallest shelves.</desc>
       </svg>
@@ -54,6 +54,31 @@
       </div>
 
       <div id="book-toast" class="book-toast" role="status" aria-live="polite" hidden></div>
+      <div id="nano-status" class="nano-status" role="status" aria-live="polite" aria-atomic="true" hidden>
+        <svg class="nano-writer" viewBox="0 0 60 48" aria-hidden="true">
+          <path d="M11 25v19m0-10h13m-5 0v10" fill="none" stroke="#8b6444" stroke-width="2.4"/>
+          <path d="M20 23q-5 2-4 10l17 1-2-8-7-4Z" fill="#3f9981"/>
+          <path d="M19 32v9h10l3-8" fill="#4c6481"/>
+          <path d="M19 41v3h8m2-3v3h7" fill="none"/>
+          <path d="M20 20v5q4 3 7-1l-1-5" fill="#e8b38d"/>
+          <path d="M18 9q4-6 12-1l2 9q-3 7-9 6-7-2-5-14Z" fill="#efc5a0"/>
+          <path d="M17 14q-3-6 2-9 7-4 12 2l1 5-6-3-4 5-3-2Z" fill="#725044"/>
+          <path d="M25 14h.5m3.5.2h.5M28 16l2 2-3 .5m-3 1q2 2 4 .5" fill="none" stroke-width=".8"/>
+          <path d="M16 33q3 4 6 1m-2-8 5 6h7" fill="none"/>
+          <path d="M7 36h48v3H7Zm4 3v8m40-8v8" fill="#c18c59"/>
+          <path d="m31 30 18-2 6 6-19 1Z" fill="#fff5d5" stroke-width=".8"/>
+          <path d="m36 32 8-.7m-6 2 10-.8" fill="none" stroke="#baaa86" stroke-width=".6"/>
+          <g class="nano-writing-hand">
+            <path d="m28 25 8 5 7 .8" fill="none" stroke="#3f9981" stroke-width="4"/>
+            <path d="m36 30 5 1q3-3 5-1l-3 3-6-1" fill="#efc5a0" stroke-width=".8"/>
+            <path d="m43 32 5-9" fill="none" stroke="#685043" stroke-width="1.6"/>
+            <path d="m43 32-1 2" fill="none" stroke="#cfaa5d" stroke-width="1"/>
+          </g>
+          <path d="M52 27h5v6h-5Zm5 1h2v3h-2" fill="#c65f67" stroke-width=".8"/>
+        </svg>
+        <span class="nano-status-copy">Writing infinite stories...</span>
+        <span id="nano-progress" class="sr-only"></span>
+      </div>
 
       <div class="navigation-dock" aria-label="View controls">
         <div class="dock-group wander-controls">
@@ -96,6 +121,56 @@
       <a class="inspiration-credit" href="https://en.wikipedia.org/wiki/Colin_Thompson_(writer)" target="_blank" rel="noopener noreferrer">Inspired by Colin Thompson</a>
       <p id="status" class="sr-only" role="status" aria-live="polite"></p>
     </main>
+
+    <dialog id="book-reader" class="book-reader" aria-labelledby="reader-title">
+      <div class="reader-heading">
+        <span class="reader-eyebrow">A world between the covers</span>
+        <button id="reader-close" class="reader-close" type="button" aria-label="Return book to shelf" autofocus>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg>
+        </button>
+      </div>
+      <div id="reader-volume" class="reader-volume">
+        <div class="reader-page-edge" aria-hidden="true"></div>
+        <article id="reader-story-page" class="reader-page reader-story-page" aria-hidden="true" inert>
+          <h2 id="reader-story-heading">The First Page</h2>
+          <div class="reader-prose">
+            <p id="reader-story-book" class="reader-story-book"></p>
+            <p id="reader-text"></p>
+          </div>
+          <span class="reader-page-number" aria-hidden="true">1</span>
+        </article>
+        <div id="reader-title-leaf" class="reader-title-leaf">
+          <article id="reader-title-page" class="reader-page reader-title-page" aria-hidden="false">
+            <h2 id="reader-title"></h2>
+            <div class="reader-prose">
+              <p id="reader-description"></p>
+              <small id="reader-credit"></small>
+              <p class="reader-reading-hint">If you're running Chrome and Gemini Nano is available, you can look inside some books for the start of the story that no one else has dreamt of so far!</p>
+            </div>
+          </article>
+          <div class="reader-page reader-title-back" aria-hidden="true">
+            <svg class="reader-leaf-ornament" viewBox="0 0 70 70" aria-hidden="true"><path d="M35 9v16M35 45v16M9 35h16M45 35h16M35 21l14 14-14 14-14-14zM35 29l6 6-6 6-6-6z"/></svg>
+          </div>
+        </div>
+        <div class="reader-cover" aria-hidden="true">
+          <div class="reader-cover-face reader-cover-front">
+            <span class="reader-cover-edition">The Unfinished Library</span>
+            <span id="reader-cover-title" class="reader-cover-name"></span>
+            <svg class="reader-cover-flourish" viewBox="0 0 70 25" aria-hidden="true"><path d="M3 12h20m24 0h20M24 12l11-9 11 9-11 9zM31 12h8"/></svg>
+            <span class="reader-cover-footnote">A curious little volume</span>
+          </div>
+          <div class="reader-cover-face reader-cover-inside">
+            <span class="reader-cover-edition">The Unfinished Library</span>
+            <span id="reader-inside-title" class="reader-cover-name"></span>
+            <svg class="reader-cover-flourish" viewBox="0 0 70 25" aria-hidden="true"><path d="M3 12h20m24 0h20M24 12l11-9 11 9-11 9zM31 12h8"/></svg>
+            <span class="reader-cover-footnote">A curious little volume</span>
+          </div>
+        </div>
+      </div>
+      <div class="reader-footer">
+        <p id="reader-status" class="reader-status" role="status" aria-live="polite"></p>
+      </div>
+    </dialog>
 
   </body>
 </html>
