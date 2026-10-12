@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f4efdf" />
+    <meta name="description" content="Wander through an infinite illustrated library of 200 literary puns, curling shelves, impossible curios, Penrose and Hat compartments, and very small inhabitants." />
+    <title>The Unfinished Library</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#stage">Skip to the bookshelf</a>
+    <header class="masthead">
+      <a class="wordmark" href="#stage" aria-label="The Unfinished Library, home">
+        <svg class="wordmark-icon" viewBox="0 0 42 44" aria-hidden="true">
+          <path d="M7 8.5 20.5 5l14 3.5v27L21 32 7 35.5zM21 5v27M7 12.5 21 9l13.5 3.5M11 17l6-1.5M11 21l6-1.5M25 16l6 1.5M25 20l6 1.5" />
+          <path d="M3.5 14v25L21 35l17.5 4V14" />
+          <path class="wordmark-star" d="m30.5 1.5.8 2.6 2.7.7-2.7.8-.8 2.6-.7-2.6-2.6-.8 2.6-.7z" />
+        </svg>
+        <span class="wordmark-copy">
+          <span class="eyebrow">A world between the spines</span>
+          <h1 class="library-title">The Unfinished Library</h1>
+        </span>
+      </a>
+      <nav class="header-actions" aria-label="Library tools">
+        <button id="explore-btn" class="button button-explore" type="button">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="m13 7-2 4-4 2 2-4z"/></svg>
+          <span>Explore</span>
+        </button>
+        <button id="export-btn" class="button button-quiet" type="button">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m-3-3 3 3 3-3M4 12v4h12v-4"/></svg>
+          <span>Save SVG</span>
+        </button>
+      </nav>
+    </header>
+
+    <main id="stage" class="stage" tabindex="0" aria-label="Interactive illustrated bookshelf. Drag to wander, scroll to zoom. Use arrow keys to move and plus or minus to zoom.">
+      <svg id="world" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="An endless whimsical bookshelf with 200 literary puns, curved and folding shelves, Penrose and Hat compartments, impossible curios and stairways, tiny mice, toys, and toadstools" preserveAspectRatio="xMidYMid slice">
+        <title>The Unfinished Library</title>
+        <desc>A bright illustrated library of curling shelves, colourful books, potted plants and trailing vines that continues in every direction and within its own smallest shelves.</desc>
+      </svg>
+
+      <div class="intro-chip" aria-hidden="true">
+        <svg viewBox="0 0 20 20"><path d="m10 2 1.7 5.3L17 9l-5.3 1.7L10 16l-1.7-5.3L3 9l5.3-1.7zM16 13l.7 2.3L19 16l-2.3.7L16 19l-.7-2.3L13 16l2.3-.7z"/></svg>
+        <span>Every spine has a story.</span>
+      </div>
+
+      <div class="discovery-counter" title="Discover hidden inhabitants by selecting them">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m10 2.5 2.2 4.4 4.8.7-3.5 3.4.8 4.8-4.3-2.3-4.3 2.3.8-4.8L3 7.6l4.8-.7z"/></svg>
+        <span class="counter-label">Little discoveries</span>
+        <span id="found-count" class="counter-value">0</span>
+      </div>
+
+      <div id="book-toast" class="book-toast" role="status" aria-live="polite" hidden></div>
+
+      <div class="navigation-dock" aria-label="View controls">
+        <div class="dock-group wander-controls">
+          <button id="pan-left" class="icon-button" type="button" aria-label="Wander left" title="Wander left (←)">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 10H4m5-5-5 5 5 5"/></svg>
+          </button>
+          <span class="dock-caption">Wander</span>
+          <button id="pan-right" class="icon-button" type="button" aria-label="Wander right" title="Wander right (→)">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5"/></svg>
+          </button>
+        </div>
+        <span class="dock-divider" aria-hidden="true"></span>
+        <div class="dock-group zoom-controls">
+          <button id="zoom-out" class="icon-button" type="button" aria-label="Zoom out" title="Zoom out (−)">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10"/></svg>
+          </button>
+          <output id="zoom-readout" class="zoom-readout" aria-label="Zoom level">40%</output>
+          <button id="zoom-in" class="icon-button" type="button" aria-label="Zoom in" title="Zoom in (+)">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10M10 5v10"/></svg>
+          </button>
+        </div>
+        <span class="dock-divider" aria-hidden="true"></span>
+        <button id="home-btn" class="icon-button" type="button" aria-label="Return to the beginning" title="Return to the beginning (Home)">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m3 9 7-6 7 6M5 8v9h10V8M8 17v-6h4v6"/></svg>
+        </button>
+        <button id="motion-btn" class="icon-button" type="button" aria-label="Pause little animations" aria-pressed="false" title="Pause little animations">
+          <svg class="pause-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5v10M13 5v10"/></svg>
+          <svg class="play-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 9 6-9 6z"/></svg>
+        </button>
+      </div>
+
+      <div class="scene-caption">
+        <span class="caption-rule" aria-hidden="true"></span>
+        <span>An infinite, impossible bookshelf</span>
+      </div>
+      <div class="view-details">
+        <span id="location-label">The beginning, more or less</span>
+        <span id="hint">Drag to wander · scroll to look closer</span>
+      </div>
+      <a class="inspiration-credit" href="https://en.wikipedia.org/wiki/Colin_Thompson_(writer)" target="_blank" rel="noopener noreferrer">Inspired by Colin Thompson</a>
+      <p id="status" class="sr-only" role="status" aria-live="polite"></p>
+    </main>
+
+  </body>
+</html>
