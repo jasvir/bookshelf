@@ -1,4 +1,31 @@
 <!doctype html>
+<!--
+GitHub badge icon: Primer Octicons, mark-github-16
+Source: https://github.com/primer/octicons
+License: https://github.com/primer/octicons/blob/main/LICENSE
+
+MIT License
+
+Copyright (c) 2026 GitHub Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -55,7 +82,13 @@ button svg, .discovery-counter svg { width: 19px; height: 19px; fill: none; stro
 .wordmark-copy { display: flex; flex-direction: column; gap: 4px; }
 .eyebrow { font-size: 8px; font-weight: 600; letter-spacing: 2.6px; text-transform: uppercase; color: var(--ink-soft); }
 .library-title { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 26px; font-weight: 400; letter-spacing: -.65px; line-height: 1.13; }
-.header-actions { display: flex; align-items: center; gap: 14px; }
+.header-actions { display: flex; align-items: center; gap: 14px; margin-left: auto; flex: 0 0 auto; }
+.social-links { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.social-link { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; border: 1px solid #c7c5d4; border-radius: 50%; background: #fffdf7; color: #29273e; box-shadow: 3px 3px 0 #dedbea; text-decoration: none; transition: transform .15s, background-color .15s; }
+.social-link:hover { background: #fff; transform: translate(-1px, -1px); }
+.social-link:active { transform: translate(1px, 1px); }
+.social-link svg { width: 21px; height: 21px; fill: currentColor; stroke: none; }
+.social-link-label { font-family: Arial, sans-serif; font-size: 22px; font-weight: 700; line-height: 1; letter-spacing: -.7px; }
 .button { border: 0; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 37px; padding: 0 13px; font-size: 11px; letter-spacing: .2px; transition: background .15s, color .15s; white-space: nowrap; }
 .button-explore { background: var(--accent); color: #fff9e8; border-radius: 4px; padding: 0 15px; }
 .button-explore:hover { background: var(--accent-hover); }
@@ -416,6 +449,10 @@ body.paused .play-icon, #motion-btn[aria-pressed="true"] .play-icon { display: b
 @media (max-width: 1040px) {
   .masthead { padding: 0 23px; }
   .header-actions { gap: 5px; }
+  .social-links { gap: 8px; }
+  .social-link { min-width: 36px; min-height: 36px; }
+  .social-link svg { width: 18px; height: 18px; }
+  .social-link-label { font-size: 20px; }
   .scene-caption { max-width: 130px; font-size: 6px; letter-spacing: 1px; }
   .view-details { max-width: 190px; }
   #hint { font-size: 7px; }
@@ -428,6 +465,8 @@ body.paused .play-icon, #motion-btn[aria-pressed="true"] .play-icon { display: b
   .library-title { font-size: 21px; }
   .eyebrow { font-size: 6px; letter-spacing: 1.9px; }
   .header-actions { gap: 4px; }
+  .social-links { gap: 7px; }
+  .social-link { min-width: 32px; min-height: 32px; }
   .button { padding: 0 9px; }
   .button-quiet span { display: none; }
   .header-actions .button-quiet:last-child { padding-left: 12px; }
@@ -448,6 +487,12 @@ body.paused .play-icon, #motion-btn[aria-pressed="true"] .play-icon { display: b
   #location-label { display: none; }
   #hint { font-size: 8px; background: #fbf5e7e8; padding: 3px 9px; border-radius: 2px; }
   .book-toast { bottom: 94px; font-size: 13px; padding: 11px 17px; }
+}
+@media (max-width: 840px) {
+  :root { --header-height: 108px; }
+  .masthead { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; align-content: center; gap: 7px 12px; padding-top: 8px; padding-bottom: 8px; }
+  .header-actions { margin-left: 0; }
+  .social-links { grid-column: 1 / -1; justify-self: end; }
 }
 @media (max-width: 450px) {
   .masthead { padding: 0 12px; gap: 8px; }
@@ -480,6 +525,15 @@ body.paused .play-icon, #motion-btn[aria-pressed="true"] .play-icon { display: b
   .reader-footer { margin-top: 18px; }
   .reader-status { font-size: 10px; }
 }
+@media (max-width: 360px) {
+  .library-title { font-size: 16px; }
+}
+@media (pointer: coarse) {
+  .social-link { min-width: 44px; min-height: 44px; }
+}
+@media (max-width: 840px) and (pointer: coarse) {
+  :root { --header-height: 116px; }
+}
 @media (max-height: 500px) {
   .reader-heading { margin-bottom: 8px; }
   .reader-close { width: 28px; height: 28px; }
@@ -502,6 +556,7 @@ body.paused .play-icon, #motion-btn[aria-pressed="true"] .play-icon { display: b
   .fish-tail, .clock-pendulum, .falling-leaf, .rocking-horse { animation: none; }
   .nano-writing-hand { animation: none; }
   .button { transition: none; }
+  .social-link { transition: none; }
   .book-reader.is-opening :is(.reader-volume, .reader-cover, .reader-title-leaf, .reader-page-edge),
   .book-reader.is-returning :is(.reader-volume, .reader-cover, .reader-title-leaf, .reader-story-page, .reader-page-edge),
   .book-reader.is-turning-page .reader-title-leaf { animation: none; }
@@ -4631,10 +4686,21 @@ window.library={get state(){return {...state,parents:parents.length,tiles:tiles.
           <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="m13 7-2 4-4 2 2-4z"/></svg>
           <span>Explore</span>
         </button>
-        <button id="export-btn" class="button button-quiet" type="button">
+        <button id="export-btn" class="button button-quiet" type="button" aria-label="Save SVG">
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m-3-3 3 3 3-3M4 12v4h12v-4"/></svg>
           <span>Save SVG</span>
         </button>
+      </nav>
+      <nav class="social-links" aria-label="Social profiles">
+        <a class="social-link" href="https://github.com/jasvir" target="_blank" rel="noopener noreferrer" aria-label="GitHub" title="GitHub">
+          <!-- Official Primer Octicons mark-github-16; see THIRD_PARTY_NOTICES.txt. -->
+          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.766 11.328c-2.063-.25-3.516-1.734-3.516-3.656 0-.781.281-1.625.75-2.188-.203-.515-.172-1.609.063-2.062.625-.078 1.468.25 1.968.703.594-.187 1.219-.281 1.985-.281.765 0 1.39.094 1.953.265.484-.437 1.344-.765 1.969-.687.218.422.25 1.515.046 2.047.5.593.766 1.39.766 2.203 0 1.922-1.453 3.375-3.547 3.64.531.344.89 1.094.89 1.954v1.625c0 .468.391.734.86.547C13.781 14.359 16 11.53 16 8.03 16 3.61 12.406 0 7.984 0 3.563 0 0 3.61 0 8.031a7.88 7.88 0 0 0 5.172 7.422c.422.156.828-.125.828-.547v-1.25c-.219.094-.5.156-.75.156-1.031 0-1.64-.562-2.078-1.609-.172-.422-.36-.672-.719-.719-.187-.015-.25-.093-.25-.187 0-.188.313-.328.625-.328.453 0 .844.281 1.25.86.313.452.64.655 1.031.655s.641-.14 1-.5c.266-.265.47-.5.657-.656"/></svg>
+        </a>
+        <a class="social-link" href="https://www.linkedin.com/in/jasvirnagra/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" title="LinkedIn"><span class="social-link-label" aria-hidden="true">in</span></a>
+        <a class="social-link" href="https://x.com/jasvir" target="_blank" rel="noopener noreferrer" aria-label="X" title="X"><span class="social-link-label" aria-hidden="true">𝕏</span></a>
+        <a class="social-link" href="https://bsky.app/profile/jasvir.bsky.social" target="_blank" rel="noopener noreferrer" aria-label="Bluesky" title="Bluesky">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 10C9 5 3 1 3 6c0 5 3 7 7 6-6 0-5 7-1 6 2-1 3-4 3-4s1 3 3 4c4 1 5-6-1-6 4 1 7-1 7-6 0-5-6-1-9 4Z"/></svg>
+        </a>
       </nav>
     </header>
 

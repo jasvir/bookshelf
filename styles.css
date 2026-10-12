@@ -45,7 +45,13 @@ button svg, .discovery-counter svg { width: 19px; height: 19px; fill: none; stro
 .wordmark-copy { display: flex; flex-direction: column; gap: 4px; }
 .eyebrow { font-size: 8px; font-weight: 600; letter-spacing: 2.6px; text-transform: uppercase; color: var(--ink-soft); }
 .library-title { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 26px; font-weight: 400; letter-spacing: -.65px; line-height: 1.13; }
-.header-actions { display: flex; align-items: center; gap: 14px; }
+.header-actions { display: flex; align-items: center; gap: 14px; margin-left: auto; flex: 0 0 auto; }
+.social-links { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.social-link { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; border: 1px solid #c7c5d4; border-radius: 50%; background: #fffdf7; color: #29273e; box-shadow: 3px 3px 0 #dedbea; text-decoration: none; transition: transform .15s, background-color .15s; }
+.social-link:hover { background: #fff; transform: translate(-1px, -1px); }
+.social-link:active { transform: translate(1px, 1px); }
+.social-link svg { width: 21px; height: 21px; fill: currentColor; stroke: none; }
+.social-link-label { font-family: Arial, sans-serif; font-size: 22px; font-weight: 700; line-height: 1; letter-spacing: -.7px; }
 .button { border: 0; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 37px; padding: 0 13px; font-size: 11px; letter-spacing: .2px; transition: background .15s, color .15s; white-space: nowrap; }
 .button-explore { background: var(--accent); color: #fff9e8; border-radius: 4px; padding: 0 15px; }
 .button-explore:hover { background: var(--accent-hover); }
@@ -406,6 +412,10 @@ body.paused .play-icon, #motion-btn[aria-pressed="true"] .play-icon { display: b
 @media (max-width: 1040px) {
   .masthead { padding: 0 23px; }
   .header-actions { gap: 5px; }
+  .social-links { gap: 8px; }
+  .social-link { min-width: 36px; min-height: 36px; }
+  .social-link svg { width: 18px; height: 18px; }
+  .social-link-label { font-size: 20px; }
   .scene-caption { max-width: 130px; font-size: 6px; letter-spacing: 1px; }
   .view-details { max-width: 190px; }
   #hint { font-size: 7px; }
@@ -418,6 +428,8 @@ body.paused .play-icon, #motion-btn[aria-pressed="true"] .play-icon { display: b
   .library-title { font-size: 21px; }
   .eyebrow { font-size: 6px; letter-spacing: 1.9px; }
   .header-actions { gap: 4px; }
+  .social-links { gap: 7px; }
+  .social-link { min-width: 32px; min-height: 32px; }
   .button { padding: 0 9px; }
   .button-quiet span { display: none; }
   .header-actions .button-quiet:last-child { padding-left: 12px; }
@@ -438,6 +450,12 @@ body.paused .play-icon, #motion-btn[aria-pressed="true"] .play-icon { display: b
   #location-label { display: none; }
   #hint { font-size: 8px; background: #fbf5e7e8; padding: 3px 9px; border-radius: 2px; }
   .book-toast { bottom: 94px; font-size: 13px; padding: 11px 17px; }
+}
+@media (max-width: 840px) {
+  :root { --header-height: 108px; }
+  .masthead { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; align-content: center; gap: 7px 12px; padding-top: 8px; padding-bottom: 8px; }
+  .header-actions { margin-left: 0; }
+  .social-links { grid-column: 1 / -1; justify-self: end; }
 }
 @media (max-width: 450px) {
   .masthead { padding: 0 12px; gap: 8px; }
@@ -470,6 +488,15 @@ body.paused .play-icon, #motion-btn[aria-pressed="true"] .play-icon { display: b
   .reader-footer { margin-top: 18px; }
   .reader-status { font-size: 10px; }
 }
+@media (max-width: 360px) {
+  .library-title { font-size: 16px; }
+}
+@media (pointer: coarse) {
+  .social-link { min-width: 44px; min-height: 44px; }
+}
+@media (max-width: 840px) and (pointer: coarse) {
+  :root { --header-height: 116px; }
+}
 @media (max-height: 500px) {
   .reader-heading { margin-bottom: 8px; }
   .reader-close { width: 28px; height: 28px; }
@@ -492,6 +519,7 @@ body.paused .play-icon, #motion-btn[aria-pressed="true"] .play-icon { display: b
   .fish-tail, .clock-pendulum, .falling-leaf, .rocking-horse { animation: none; }
   .nano-writing-hand { animation: none; }
   .button { transition: none; }
+  .social-link { transition: none; }
   .book-reader.is-opening :is(.reader-volume, .reader-cover, .reader-title-leaf, .reader-page-edge),
   .book-reader.is-returning :is(.reader-volume, .reader-cover, .reader-title-leaf, .reader-story-page, .reader-page-edge),
   .book-reader.is-turning-page .reader-title-leaf { animation: none; }

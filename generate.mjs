@@ -36,9 +36,9 @@ function inlineModule(name, source, namespace) {
   return `// ${name}\nconst { ${names} } = (() => {\n${stripModule(source)}\nreturn { ${names} };\n})();`;
 }
 
-const [htmlSource, cssSource, catalogSource, motifsSource, booksSource, shelvesSource, foliageSource, hatTilesSource, mathShelvesSource, artSource, sceneSource, nanoSource, readerSource, appSource, faviconSource] = await Promise.all([
+const [htmlSource, cssSource, catalogSource, motifsSource, booksSource, shelvesSource, foliageSource, hatTilesSource, mathShelvesSource, artSource, sceneSource, nanoSource, readerSource, appSource, faviconSource, noticesSource] = await Promise.all([
   read('index.html'), read('styles.css'), read('catalog.js'),
-  read('motifs.js'), read('books.js'), read('shelves.js'), read('foliage.js'), read('hat-tiles.js'), read('math-shelves.js'), read('art.js'), read('scene.js'), read('nano.js'), read('book-reader.js'), read('app.js'), read('favicon.svg')
+  read('motifs.js'), read('books.js'), read('shelves.js'), read('foliage.js'), read('hat-tiles.js'), read('math-shelves.js'), read('art.js'), read('scene.js'), read('nano.js'), read('book-reader.js'), read('app.js'), read('favicon.svg'), read('THIRD_PARTY_NOTICES.txt')
 ]);
 const script = [
   inlineModule('catalog.js', catalogSource, catalogModule),
@@ -72,6 +72,7 @@ if (!htmlSource.includes(cssTag) || !htmlSource.includes(scriptTag) || !htmlSour
   throw new Error('The stylesheet, module entry, or favicon tag changed; update the bundler markers.');
 }
 const bundledHTML = htmlSource
+  .replace('<!doctype html>', () => `<!doctype html>\n<!--\n${noticesSource.trim()}\n-->`)
   .replace(faviconTag, () => `<link rel="icon" type="image/svg+xml" sizes="any" href="data:image/svg+xml,${encodeURIComponent(faviconSource.trim())}" />`)
   .replace(cssTag, () => `<style>\n${cssSource.replace(/<\/style/gi, '<\\/style')}\n</style>`)
   .replace(scriptTag, () => `<script type="module">\n${script.replace(/<\/script/gi, '<\\/script')}\n</script>`);
