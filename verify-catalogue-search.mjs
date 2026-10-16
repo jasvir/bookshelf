@@ -85,6 +85,10 @@ function harness({ reduced = false, onApproach } = {}) {
 
 const cases = [];
 async function test(name, run) { await run(); cases.push(name); console.log(`✓ ${name}`); }
+const alphabeticalCards = BOOKS.map((book, id) => ({ book, id })).sort((a, b) => new Intl.Collator('en', { sensitivity: 'base', numeric: true }).compare(a.book.title, b.book.title) || a.id - b.id);
+const authorCards = author => alphabeticalCards.filter(entry => entry.book.author === author);
+const currentCardId = h => Number(h.get('result-number').textContent.match(/\d+/)?.[0]) - 1;
+const pressArrow = (h, key, extra = {}, target = 'query') => h.get(target).dispatch('keydown', { key, ...extra });
 
 await test('Empty drawer shows the first alphabetical book and focuses its label', async () => {
   const h = harness(); await h.controller.open();
@@ -111,6 +115,102 @@ await test('Ambiguous author search chooses the first alphabetical matching titl
   const expected = BOOKS.filter(book => book.author === 'Jane Austen').sort((a, b) => new Intl.Collator('en', { sensitivity: 'base', numeric: true }).compare(a.title, b.title))[0];
   assert.equal(h.get('result-title').textContent, expected.title);
   await h.controller.close({ reason: 'navigation' });
+});
+
+await test('Up and Down browse every matching author card alphabetically and wrap at both ends', async () => {
+  const h = harness({ reduced: true }), expected = authorCards('Jane Austen'); assert.ok(expected.length > 2);
+  await h.controller.open(); h.type('Jane Austen');
+  assert.equal(currentCardId(h), expected[0].id);
+  const previous = pressArrow(h, 'ArrowUp');
+  assert.equal(previous.defaultPrevented, true); assert.equal(previous.propagationStopped, true); assert.equal(currentCardId(h), expected.at(-1).id);
+  pressArrow(h, 'ArrowDown'); assert.equal(currentCardId(h), expected[0].id);
+  for (let index = 1; index <= expected.length; index++) {
+    const event = pressArrow(h, 'ArrowDown'); assert.equal(event.defaultPrevented, true);
+    assert.equal(currentCardId(h), expected[index % expected.length].id);
+    assert.equal(h.get('query').value, 'Jane Austen'); assert.equal(h.document.activeElement, h.get('query'));
+  }
+  await h.advance(0); assert.match(h.get('status').textContent, new RegExp(`Card 1 of ${expected.length} matches`)); assert.match(h.get('status').textContent, /Up and Down/);
+  await h.controller.close({ reason: 'navigation' });
+});
+
+await test('An empty label browses all 600 catalogue titles without changing the input', async () => {
+  const h = harness({ reduced: true }); await h.controller.open(); assert.equal(alphabeticalCards.length, 600);
+  const visited = new Set([currentCardId(h)]);
+  for (let index = 1; index <= alphabeticalCards.length; index++) {
+    pressArrow(h, 'ArrowDown'); const expected = alphabeticalCards[index % alphabeticalCards.length];
+    assert.equal(currentCardId(h), expected.id, `alphabetical card ${index % alphabeticalCards.length + 1}`);
+    assert.equal(h.get('result-title').textContent, expected.book.title); assert.equal(h.get('query').value, ''); visited.add(currentCardId(h));
+  }
+  assert.equal(visited.size, BOOKS.length); assert.equal(h.document.activeElement, h.get('query'));
+  pressArrow(h, 'ArrowUp'); assert.equal(currentCardId(h), alphabeticalCards.at(-1).id);
+  await h.advance(0); assert.match(h.get('status').textContent, /Card 600 of 600/);
+  await h.controller.close({ reason: 'navigation' });
+});
+
+await test('Editing the query resets its browsing cursor to the first match', async () => {
+  const h = harness({ reduced: true }), expected = authorCards('Jane Austen'); await h.controller.open(); h.type('Jane Austen');
+  pressArrow(h, 'ArrowDown'); pressArrow(h, 'ArrowDown'); assert.equal(currentCardId(h), expected[2].id);
+  h.type('Jane Auste'); assert.equal(currentCardId(h), expected[0].id); await h.advance(0);
+  assert.match(h.get('status').textContent, new RegExp(`Card 1 of ${expected.length} matches`));
+  pressArrow(h, 'ArrowUp'); assert.equal(currentCardId(h), expected.at(-1).id);
+  h.type('Hamlet'); assert.equal(h.get('result-title').textContent, 'Hamlet and Cheese');
+  h.type('Jane Austen'); assert.equal(currentCardId(h), expected[0].id);
+  await h.controller.close({ reason: 'navigation' });
+});
+
+await test('Rapid arrow browsing keeps one outgoing card and restarts the one-second quiet raise', async () => {
+  const h = harness(), expected = authorCards('Jane Austen'); await h.controller.open(); h.type('Jane Austen'); await h.advance(340);
+  let index = 0, firstGhost;
+  for (let count = 0; count < 25; count++) {
+    const oldTitle = expected[index].book.title; pressArrow(h, 'ArrowDown'); index = (index + 1) % expected.length;
+    assert.equal(currentCardId(h), expected[index].id); assert.equal(h.ghosts().length, 1); assert.ok(h.ghosts()[0].textContent.includes(oldTitle));
+    if (!firstGhost) firstGhost = h.ghosts()[0];
+  }
+  const latestGhost = h.ghosts()[0]; firstGhost.dispatch('animationend', { animationName: 'catalogue-card-away' }); assert.equal(h.ghosts()[0], latestGhost);
+  await h.advance(999); assert.equal(h.ghosts().length, 0); assert.equal(h.get('search').classList.contains('is-raised'), false);
+  await h.advance(1); assert.equal(h.get('search').classList.contains('is-raised'), true);
+  assert.match(h.get('status').textContent, new RegExp(`Card ${index + 1} of ${expected.length} matches`)); assert.ok(h.get('status').textContent.includes(expected[index].book.title));
+  assert.equal(h.get('query').value, 'Jane Austen'); await h.controller.close({ reason: 'navigation' });
+});
+
+await test('Enter selects the browsed card rather than the first matching title', async () => {
+  const h = harness(), expected = authorCards('Jane Austen'); await h.controller.open(); h.type('Jane Austen');
+  pressArrow(h, 'ArrowDown'); pressArrow(h, 'ArrowDown'); assert.equal(currentCardId(h), expected[2].id);
+  h.get('form').dispatch('submit'); assert.equal(h.ghosts().length, 0);
+  await h.advance(280); assert.deepEqual(h.events.choices, [expected[2].id]); assert.equal(h.get('search').open, false);
+});
+
+await test('Arrow keys on a focused result preserve its focus and clicking selects that card', async () => {
+  const h = harness({ reduced: true }), expected = authorCards('Jane Austen'); await h.controller.open(); h.type('Jane Austen'); h.get('result').focus();
+  const event = pressArrow(h, 'ArrowDown', {}, 'result'); assert.equal(event.defaultPrevented, true); assert.equal(event.propagationStopped, true);
+  assert.equal(currentCardId(h), expected[1].id); assert.equal(h.document.activeElement, h.get('result')); assert.equal(h.get('query').value, 'Jane Austen');
+  h.get('result').dispatch('click'); await flush(); assert.deepEqual(h.events.choices, [expected[1].id]);
+});
+
+await test('Modified, composing, already handled, and horizontal arrows do not change the card', async () => {
+  const h = harness(); await h.controller.open(); h.type('Jane Austen'); await h.advance(340); const before = currentCardId(h);
+  for (const extra of [{ altKey: true }, { ctrlKey: true }, { metaKey: true }, { shiftKey: true }, { isComposing: true }, { keyCode: 229 }, { defaultPrevented: true }]) {
+    const event = pressArrow(h, 'ArrowDown', extra);
+    assert.equal(currentCardId(h), before); assert.equal(h.ghosts().length, 0); assert.equal(event.defaultPrevented, !!extra.defaultPrevented); assert.equal(event.propagationStopped, false);
+  }
+  for (const key of ['ArrowLeft', 'ArrowRight']) { const event = pressArrow(h, key); assert.equal(event.defaultPrevented, false); assert.equal(currentCardId(h), before); }
+  h.get('query').dispatch('compositionstart'); const composing = pressArrow(h, 'ArrowUp'); assert.equal(composing.defaultPrevented, false); assert.equal(currentCardId(h), before);
+  h.get('query').dispatch('compositionend'); await h.controller.close({ reason: 'navigation' });
+});
+
+await test('No-match arrows cannot restore or choose a stale matching card', async () => {
+  const h = harness(); await h.controller.open(); h.type('Jane Austen'); pressArrow(h, 'ArrowDown'); h.type('zxqv no such book'); await h.advance(340);
+  const before = h.get('result-title').textContent;
+  for (const key of ['ArrowUp', 'ArrowDown']) { const event = pressArrow(h, key); assert.equal(event.defaultPrevented, false); assert.equal(h.get('result-title').textContent, before); }
+  assert.equal(h.get('result').disabled, true); assert.equal(h.ghosts().length, 0);
+  h.get('form').dispatch('submit'); await h.advance(1200); assert.deepEqual(h.events.choices, []);
+  await h.controller.close({ reason: 'navigation' });
+});
+
+await test('A single-match arrow prevents scrolling without retriggering its card animation', async () => {
+  const h = harness(); await h.controller.open(); h.type('Great Catsby'); await h.advance(340); const before = currentCardId(h);
+  for (const key of ['ArrowUp', 'ArrowDown']) { const event = pressArrow(h, key); assert.equal(event.defaultPrevented, true); assert.equal(currentCardId(h), before); assert.equal(h.ghosts().length, 0); }
+  assert.equal(h.get('result').classList.contains('is-arriving'), false); await h.controller.close({ reason: 'navigation' });
 });
 
 await test('One second of quiet raises a card; new input restarts the timer', async () => {

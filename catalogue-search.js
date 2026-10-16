@@ -20,6 +20,7 @@ export function createCatalogueSearch({ books, onApproach, onChoose, onCancel, a
   const motionPreference = window.matchMedia?.('(prefers-reduced-motion: reduce)');
   const reduceMotion = () => Boolean(motionPreference?.matches);
   let active = false, closing = false, session = 0, selected = null, composing = false;
+  let matchingEntries = [], selectedIndex = 0;
   let previousFocus = null, anchor = null, raiseTimer = 0, statusTimer = 0, openingTimer = 0;
   let closePromise = null, choiceIntent = 0, cardChange = null;
   let closeReason = 'cancel', closeRestoreFocus = true, closeWaitTimer = 0, closeWaitResolve = null;
@@ -102,12 +103,18 @@ export function createCatalogueSearch({ books, onApproach, onChoose, onCancel, a
     dialog.style.setProperty('--drawer-origin-scale', String(Math.min(1.25, Math.max(.2, (anchor?.width || front.width) / front.width))));
   }
 
-  function update({ welcome = false } = {}) {
+  function update({ welcome = false, step = 0, refilter = true } = {}) {
     clearTimeout(raiseTimer); clearTimeout(statusTimer);
     const wasRaised = dialog.classList.contains('is-raised');
     status.textContent = '';
     const term = fold(query.value);
-    const next = entries.find(entry => !term || entry.keys.some(key => key.includes(term))) || null;
+    if (refilter) {
+      matchingEntries = entries.filter(entry => !term || entry.keys.some(key => key.includes(term)));
+      selectedIndex = 0;
+    } else if (matchingEntries.length) {
+      selectedIndex = (selectedIndex + step + matchingEntries.length) % matchingEntries.length;
+    }
+    const next = matchingEntries[selectedIndex] || null;
     const changed = next?.id !== selected?.id;
     if (reduceMotion()) finishCardChange();
     const oldCard = changed && !welcome && !reduceMotion() ? departingCard(wasRaised) : null;
@@ -119,7 +126,7 @@ export function createCatalogueSearch({ books, onApproach, onChoose, onCancel, a
       resultTitle.textContent = next.book.title;
       resultAuthor.textContent = next.book.author;
       resultOriginal.textContent = `After ${next.book.original}`;
-      resultNumber.textContent = `No. ${String(next.id + 1).padStart(3, '0')}`;
+      resultNumber.textContent = `No. ${String(next.id + 1).padStart(3, '0')}${matchingEntries.length > 1 ? ` · ${selectedIndex + 1} / ${matchingEntries.length}` : ''}`;
       result.setAttribute('aria-label', `Find ${next.book.title}, after ${next.book.original}, by ${next.book.author}`);
     } else {
       resultTitle.textContent = 'A little mystery…';
@@ -134,9 +141,19 @@ export function createCatalogueSearch({ books, onApproach, onChoose, onCancel, a
       if (!active || closing || token !== session || composing) return;
       if (selected) dialog.classList.add('is-raised');
       status.textContent = selected
-        ? `${selected.book.title}. ${term ? 'First alphabetical match. ' : ''}Press Enter or select the card to find it on the shelf.`
+        ? `${selected.book.title}. Card ${selectedIndex + 1} of ${matchingEntries.length} ${matchingEntries.length === 1 ? 'match' : 'matches'}. Use Up and Down to browse. Press Enter or select the card to find it on the shelf.`
         : 'No matching book. Try another title or author.';
     }, welcome || reduceMotion() ? 0 : 1000);
+  }
+
+  function browse(event) {
+    if (!['ArrowUp', 'ArrowDown'].includes(event.key) || event.defaultPrevented ||
+      !active || closing || composing || event.isComposing || event.keyCode === 229 ||
+      event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || !matchingEntries.length) return false;
+    event.preventDefault();
+    event.stopPropagation();
+    if (matchingEntries.length > 1) update({ step: event.key === 'ArrowDown' ? 1 : -1, refilter: false });
+    return true;
   }
 
   async function close({ restoreFocus = true, reason = 'cancel' } = {}) {
@@ -232,6 +249,7 @@ export function createCatalogueSearch({ books, onApproach, onChoose, onCancel, a
   });
   query.addEventListener('compositionend', () => { composing = false; if (!closing) update(); });
   query.addEventListener('keydown', event => {
+    if (browse(event)) return;
     if (event.key === 'Escape' && !(composing || event.isComposing || event.keyCode === 229)) {
       event.preventDefault();
       event.stopPropagation();
@@ -242,6 +260,7 @@ export function createCatalogueSearch({ books, onApproach, onChoose, onCancel, a
   });
   form.addEventListener('submit', event => { event.preventDefault(); void choose(); });
   result.addEventListener('click', () => { void choose(); });
+  result.addEventListener('keydown', browse);
   closeButton.addEventListener('click', () => { void close(); });
   dialog.addEventListener('cancel', event => { event.preventDefault(); void close(); });
   dialog.addEventListener('click', event => {

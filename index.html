@@ -148,7 +148,7 @@
             <span class="catalogue-divider">M–R</span>
             <span class="catalogue-divider">S–Z</span>
           </div>
-          <button id="catalogue-result" class="catalogue-result" type="button">
+          <button id="catalogue-result" class="catalogue-result" type="button" aria-keyshortcuts="ArrowUp ArrowDown">
             <span id="catalogue-result-number" class="catalogue-card-number"></span>
             <span id="catalogue-result-title" class="catalogue-card-title"></span>
             <span id="catalogue-result-author" class="catalogue-card-author"></span>
@@ -159,7 +159,7 @@
           <form id="catalogue-form" class="catalogue-front" role="search">
             <div class="catalogue-label-holder">
               <label for="catalogue-query">Find a book</label>
-              <input id="catalogue-query" type="search" autocomplete="off" spellcheck="false" enterkeyhint="search" placeholder="Start a small search…" autofocus />
+              <input id="catalogue-query" type="search" autocomplete="off" spellcheck="false" enterkeyhint="search" aria-keyshortcuts="ArrowUp ArrowDown" placeholder="Start a small search…" autofocus />
             </div>
             <span class="catalogue-handle" aria-hidden="true"></span>
           </form>
