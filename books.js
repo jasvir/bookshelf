@@ -35,6 +35,39 @@ const TITLE_METRICS = BOOKS.map(book => {
 });
 
 let bookPixelScale = Infinity;
+let bookCapture = null;
+
+const multiplyBookMatrices = (a,b) => [a[0]*b[0]+a[2]*b[1],a[1]*b[0]+a[3]*b[1],a[0]*b[2]+a[2]*b[3],a[1]*b[2]+a[3]*b[3],a[0]*b[4]+a[2]*b[5]+a[4],a[1]*b[4]+a[3]*b[5]+a[5]];
+
+/** A placement's identity is independent of detail and text visibility. */
+export function bookOccurrenceKey({x,y,width,height,angle=0,id=0,seed=1}) {
+  const bookId=((Math.trunc(id)%BOOKS.length)+BOOKS.length)%BOOKS.length;
+  const value=`${seed}:${x}:${y}:${bookId}:${angle}:${width}:${height}`;
+  return `book-${hash(value).toString(36)}-${hash(value,3335557771).toString(36)}`;
+}
+
+/** Capture the existing seeded placement calculations without building books. */
+export function captureBookGeometry(draw) {
+  const previous=bookCapture,records=[];
+  bookCapture={records,matrix:[1,0,0,1,0,0]};
+  try { draw(); return records; } finally { bookCapture=previous; }
+}
+
+/** Include an ancestor SVG transform when collecting local book geometry. */
+export function withBookTransform(matrix,draw) {
+  if(!bookCapture)return draw();
+  const previous=bookCapture.matrix;
+  bookCapture.matrix=multiplyBookMatrices(previous,matrix);
+  try { return draw(); } finally { bookCapture.matrix=previous; }
+}
+
+function captureBook(spec,bookId,occurrenceKey) {
+  const angle=n(spec.angle)*Math.PI/180,c=Math.cos(angle),s=Math.sin(angle),w=n(spec.width),h=n(spec.height);
+  const matrix=multiplyBookMatrices(bookCapture.matrix,[c,s,-s,c,n(spec.x),n(spec.y)]);
+  const corners=[[0,0],[w,0],[w,-h],[0,-h]].map(([x,y])=>({x:matrix[0]*x+matrix[2]*y+matrix[4],y:matrix[1]*x+matrix[3]*y+matrix[5]}));
+  const xs=corners.map(p=>p.x),ys=corners.map(p=>p.y);
+  bookCapture.records.push({bookId,occurrenceKey,x:corners.reduce((sum,p)=>sum+p.x,0)/4,y:corners.reduce((sum,p)=>sum+p.y,0)/4,w:w*Math.hypot(matrix[0],matrix[1]),h:h*Math.hypot(matrix[2],matrix[3]),angle:Math.atan2(matrix[1],matrix[0])*180/Math.PI,corners,matrix,bounds:{x:Math.min(...xs),y:Math.min(...ys),w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)}});
+}
 
 // Rendering a miniature does not permanently change the detail of its parent.
 // Print/export callers retain every label unless they explicitly supply scale.
@@ -52,12 +85,14 @@ export function withBookScale(pixelScale, draw) {
 export function renderBook({ x, y, width, height, angle = 0, id = 0, seed = 1, detail = 'full' }) {
   if (![x, y, width, height, angle].every(Number.isFinite) || width <= 0 || height <= 0) return '';
   const bookId = ((Math.trunc(id) % BOOKS.length) + BOOKS.length) % BOOKS.length;
+  const occurrenceKey=bookOccurrenceKey({x,y,width,height,angle,id:bookId,seed});
+  if(bookCapture){captureBook({x,y,width,height,angle},bookId,occurrenceKey);return '';}
   const book = TITLE_METRICS[bookId], title = book.title;
   const compact = detail === 'compact';
   const distant = detail === 'distant', preview = detail === 'preview';
   const w = width, h = height, key = `${seed}:${x}:${y}:${bookId}:${angle}:${w}:${h}`;
   const clipKey = compact ? `${key}:compact` : key;
-  const token = `${hash(clipKey).toString(36)}-${hash(clipKey, 3335557771).toString(36)}`;
+  const token = compact ? `${hash(clipKey).toString(36)}-${hash(clipKey, 3335557771).toString(36)}` : occurrenceKey.slice(5);
   const clip = `spine-title-${token}`, coverClip = `spine-cover-${token}`;
   const r = random(hash(key)), color = COVERS[Math.floor(r() * COVERS.length)];
   const cloth = r() > .48, ornate = r() > .25, panel = r() > .62, window = w > 30 && h > 105 && r() > .72;
@@ -80,7 +115,7 @@ export function renderBook({ x, y, width, height, angle = 0, id = 0, seed = 1, d
   // inaccessible subpixel lettering, per-book clips and texture overlays are
   // absent from the DOM; the same seeded cover and transform survive zooming.
   if (distant || preview) {
-    let out = `<g class="book" data-book="${bookId}" data-angle="${angle}" data-width="${n(w)}" data-height="${n(h)}" data-detail="${detail}" aria-label="${book.escapedName}" transform="translate(${n(x)} ${n(y)}) rotate(${n(angle)})">${preview?'':`<title>${book.escapedName}</title>`}<path d="${cover}" fill="${color}" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/>`;
+    let out = `<g class="book" data-book="${bookId}" data-book-key="${occurrenceKey}" data-angle="${angle}" data-width="${n(w)}" data-height="${n(h)}" data-detail="${detail}" aria-label="${book.escapedName}" transform="translate(${n(x)} ${n(y)}) rotate(${n(angle)})">${preview?'':`<title>${book.escapedName}</title>`}<path d="${cover}" fill="${color}" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/>`;
     if (distant) out += `<path d="M${n(w-3)} ${n(-h+3)}h2.1v${n(h-6)}h-2.1Z" fill="#c2b08d" opacity=".8"/><path d="M1.8 ${n(topRib)}H${n(w-1.8)}M1.8 ${n(bottomRib)}H${n(w-1.8)}" stroke="${gold}" stroke-width="1.55"/>`;
     return out + '</g>';
   }
@@ -91,7 +126,7 @@ export function renderBook({ x, y, width, height, angle = 0, id = 0, seed = 1, d
     if (i % 2) lightMarks += mark; else darkMarks += mark;
   }
 
-  let out = `<g class="book" data-book="${bookId}" data-angle="${angle}" data-width="${n(w)}" data-height="${n(h)}" data-detail="${compact?'compact':'full'}" aria-label="${book.escapedName}" transform="translate(${n(x)} ${n(y)}) rotate(${n(angle)})"><title>${book.escapedName}</title>
+  let out = `<g class="book" data-book="${bookId}" data-book-key="${occurrenceKey}" data-angle="${angle}" data-width="${n(w)}" data-height="${n(h)}" data-detail="${compact?'compact':'full'}" aria-label="${book.escapedName}" transform="translate(${n(x)} ${n(y)}) rotate(${n(angle)})"><title>${book.escapedName}</title>
     ${showTitle||!compact?`<defs>${showTitle?`<clipPath id="${clip}" clipPathUnits="userSpaceOnUse"><rect x="${n(labelX)}" y="${n(labelY)}" width="${n(labelW)}" height="${n(labelH)}"/></clipPath>`:''}${compact?'':`<clipPath id="${coverClip}" clipPathUnits="userSpaceOnUse"><path d="${cover}"/></clipPath>`}</defs>`:''}
     <path d="${cover}" fill="${color}" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/>
     ${compact?'':`<g clip-path="url(#${coverClip})">`}

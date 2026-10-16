@@ -1,8 +1,10 @@
-import {W,H,definitions,tileMarkup,previewMarkup,getPortal,portalSeeds,hash,esc} from './art.js';
+import {W,H,definitions,tileMarkup,previewMarkup,getPortal,getDrawers,findNearestBook,portalSeeds,hash,esc} from './art.js';
 import {BOOKS,DISCOVERIES} from './catalog.js';
 import {createScene} from './scene.js';
 import {createBookReader} from './book-reader.js';
 import {createDetailTransitions} from './detail-transitions.js';
+import {createCatalogueSearch} from './catalogue-search.js';
+import {createCatalogueJourney} from './catalogue-journey.js';
 
 const $=id=>document.getElementById(id);
 const stage=$('stage'), svg=$('world'), NS='http://www.w3.org/2000/svg';
@@ -19,7 +21,7 @@ let poolBytes=0, poolNodes=0, markupBytes=0, buildFrame=0, buildQueue=[], desire
 let stageRect, currentQuality='distant', labelScale=0, lastInput=-Infinity, settleTimer=0;
 const HOME_ZOOM=.4;
 const state={x:W*.5,y:H*.5,s:1,seed:17,depth:0,w:0,h:0,base:1,zoomOffset:0};
-let scheduled=false, animation=0, pointerGesture=null, dragged=false, toastTimer, downTarget=null;
+let scheduled=false, animation=0, flightCompletion=null, pointerGesture=null, dragged=false, toastTimer, downTarget=null;
 const pointers=new Map(), reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const DETAIL_FADE_MS=180,MAX_DETAIL_TRANSITIONS=2,MAX_DETAIL_NODES=12_000;
 let skipFadesUntil=0;
@@ -36,6 +38,20 @@ const reader=createBookReader({
  onClose:()=>{document.body.classList.remove('is-reading');stage.focus({preventScroll:true});},
  announce
 });
+const catalogueJourney=createCatalogueJourney({
+ getView:()=>({...state}),getDrawers,findNearestBook,flyTo,cancelFlight,requestDraw,announce,drawing,stage,button:$('search-btn'),
+ onFound:book=>{const item=BOOKS[book.bookId];if(item){toast(item.title,`A little twist on ${item.original} · ${item.author}`,item.blurb);announce(`Found ${item.title}. The nearest copy is outlined in gold.`);}}
+});
+const catalogue=createCatalogueSearch({
+ books:BOOKS,announce,
+ onApproach:()=>{reader.close(true);reader.cancelOffer();clearTimeout(toastTimer);$('book-toast').hidden=true;detailTransitions.finishAll();return catalogueJourney.approach();},
+ onChoose:id=>catalogueJourney.choose(id),onCancel:()=>catalogueJourney.cancel()
+});
+function interruptCatalogue(){
+ if(catalogue.isOpen){void catalogue.close({reason:'navigation',restoreFocus:false});catalogueJourney.reset();}
+ else catalogueJourney.interrupt();
+}
+function resetCatalogue(){void catalogue.close({reason:'navigation',restoreFocus:false});catalogueJourney.reset();}
 
 const QUALITY_LEVELS=['overview','distant','compact','full'], QUALITY_BOUNDS=[.12,.48,.95];
 const labelBucket=scale=>2**(Math.floor(Math.log2(scale)*2)/2);
@@ -92,6 +108,7 @@ function rememberTile(key,record) {
  }
 }
 function clearTiles() {
+ catalogueJourney.reset();
  detailTransitions.finishAll();
  sceneRevision++;desiredTiles.clear();buildQueue=[];
  if(buildFrame)cancelAnimationFrame(buildFrame);buildFrame=0;
@@ -138,7 +155,7 @@ function installTile(spec,reserved=null) {
   if(!fade)rememberTile(oldKey,old);
  }
  tiles.set(key,record);
- try{scene.attach(record,state);fade?.start([record.el,record.motionEl].filter(Boolean));}
+ try{scene.attach(record,state);catalogueJourney.attach(record.el);catalogueJourney.sync();fade?.start([record.el,record.motionEl].filter(Boolean));}
  catch(error){fade?.finish();throw error;}
 }
 function waitForDetailSlot(spec){
@@ -196,6 +213,8 @@ function updatePortal(p,quality,pixelScale=0) {
   if(content)registerPortal(p.record,content,child.seed,{x:p.x+child.x*p.unit,y:p.y+child.y*p.unit,w:child.w*p.unit,h:child.h*p.unit},p.unit*child.k,p.depth+1,p);
  }
  scene.refresh(p.record,state);
+ catalogueJourney.attach(p.record.el);
+ catalogueJourney.sync();
  if(fade){motionCopies=[...p.record.motionEl?.querySelectorAll('[data-detail-portal]')||[]];fade.start([incoming,...motionCopies]);}
 }
 function scheduleBuild() {
@@ -296,6 +315,7 @@ function render() {
   installTile(spec,reserved.get(spec.key));return false;
  });
  for(const record of tiles.values())scene.sync(record,state);
+ catalogueJourney.sync();
  scheduleBuild();
  const logZoom=Math.log10(state.s/state.base)+state.zoomOffset;
  const zoomLabel=logZoom>4?`10^${(logZoom+2).toFixed(1)}%`:logZoom< -2?`10^${(logZoom+2).toFixed(1)}%`:`${Math.round(100*10**logZoom)}%`;
@@ -311,32 +331,37 @@ function resize(initial=false) {
  if(initial){state.base=Math.max(.38,state.h/H*1.08);state.s=state.base*HOME_ZOOM;}
  requestDraw();
 }
-function cancelFlight(){if(animation)cancelAnimationFrame(animation);animation=0;}
+function cancelFlight(){if(animation)cancelAnimationFrame(animation);animation=0;const complete=flightCompletion;flightCompletion=null;complete?.(false);}
 function flyTo(x,y,s,duration=700,done) {
  touchNavigation();
  cancelFlight();const from={x:state.x,y:state.y,s:state.s},start=performance.now(),len=reduced.matches?0:duration;
+ let complete;const journey=new Promise(resolve=>{complete=resolve;});flightCompletion=complete;
  function step(now) {
   const t=len?Math.min(1,(now-start)/len):1,u=t*t*(3-2*t);
   state.x=from.x+(x-from.x)*u;state.y=from.y+(y-from.y)*u;state.s=from.s*Math.exp(Math.log(s/from.s)*u);
   // Wait to change coordinate systems until the flight is complete.
-  if(t===1){animation=0;touchNavigation();requestDraw();done?.();}else{animation=requestAnimationFrame(step);requestDraw();}
+  if(t===1){animation=0;flightCompletion=null;touchNavigation();requestDraw();done?.();complete(true);}else{animation=requestAnimationFrame(step);requestDraw();}
  }
  animation=requestAnimationFrame(step);
+ return journey;
 }
 function zoomAt(factor,px=state.w/2,py=state.h/2) {
+ interruptCatalogue();
  touchNavigation();
  cancelFlight();const x=state.x+(px-state.w/2)/state.s,y=state.y+(py-state.h/2)/state.s;
  const next=Math.max(.018,Math.min(40,state.s*Math.max(.02,Math.min(50,factor))));state.x=x-(px-state.w/2)/next;state.y=y-(py-state.h/2)/next;state.s=next;
  if(state.s>24){const p=nearestPortal();state.x=p.tx*W+p.x+p.w/2;state.y=p.ty*H+p.y+p.h/2;toast('A smaller world is waiting','Follow the doorway to keep looking closer.');}
  requestDraw();
 }
-function pan(dx,dy=0){cancelFlight();flyTo(state.x+dx/state.s,state.y+dy/state.s,state.s,360);}
+function pan(dx,dy=0){interruptCatalogue();cancelFlight();flyTo(state.x+dx/state.s,state.y+dy/state.s,state.s,360);}
 function goInside(tx,ty) {
+ interruptCatalogue();
  const p={...getPortal(tx,ty,state.seed),tx,ty};
  const s=Math.max(state.w/p.w,state.h/p.h)*1.45;
  flyTo(tx*W+p.x+p.w/2,ty*H+p.y+p.h/2,s,1100);
 }
 function home(){
+ resetCatalogue();
  reader.close(true);reader.cancelOffer();
  cancelFlight();clearTimeout(settleTimer);settleTimer=0;lastInput=-Infinity;
  const held=[...pointers.keys()];pointers.clear();pointerGesture=null;downTarget=null;dragged=held.length>0;
@@ -346,10 +371,11 @@ function home(){
 }
 
 stage.addEventListener('wheel',e=>{
+ if(catalogue.isOpen)return;
  if(e.target.closest('button,a'))return;
  e.preventDefault();const rect=stageRect;
  // Normal scrolling zooms into the point beneath the cursor; shift-scroll wanders.
- if(e.shiftKey){touchNavigation();cancelFlight();state.x+=(e.deltaY+e.deltaX)/state.s;requestDraw();}
+ if(e.shiftKey){interruptCatalogue();touchNavigation();cancelFlight();state.x+=(e.deltaY+e.deltaX)/state.s;requestDraw();}
  else {const delta=e.deltaMode===1?e.deltaY*16:e.deltaMode===2?e.deltaY*state.h:e.deltaY;zoomAt(Math.exp(-Math.max(-160,Math.min(160,delta))*.0025),e.clientX-rect.left,e.clientY-rect.top);}
 },{passive:false});
 
@@ -359,7 +385,9 @@ function gestureBaseline() {
  pointerGesture={x:state.x,y:state.y,s:state.s,mx:mid.x,my:mid.y,d:ps.length>1?Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y):0};
 }
 stage.addEventListener('pointerdown',e=>{
+ if(catalogue.isOpen)return;
  if(e.target.closest('button,a,dialog')||e.button!==0)return;
+ interruptCatalogue();
  touchNavigation();cancelFlight();pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===1)dragged=false;
  downTarget=e.target;
  stage.setPointerCapture(e.pointerId);gestureBaseline();
@@ -379,26 +407,32 @@ function release(e){pointers.delete(e.pointerId);touchNavigation();if(pointers.s
 stage.addEventListener('pointerup',release);stage.addEventListener('pointercancel',release);
 stage.addEventListener('lostpointercapture',e=>{if(pointers.has(e.pointerId))release(e);});
 stage.addEventListener('click',e=>{
+ if(catalogue.isOpen)return;
  if(dragged){dragged=false;return;}
  const target=e.target===stage&&downTarget?.isConnected?downTarget:e.target;
  downTarget=null;
+ if(target.closest('.catalogue-drawer')){void catalogue.open();return;}
  const item=target.closest('[data-find],[data-book]');
  if(item?.hasAttribute('data-book')){bookNote(Number(item.dataset.book),item);return;}
  if(item){discover(Number(item.dataset.find));return;}
  let portal=target.closest('.portal');if(portal){while(portal.parentElement.closest('.portal'))portal=portal.parentElement.closest('.portal');const [x,y]=portal.dataset.portal.split(',').map(Number);goInside(x,y);}
 });
-stage.addEventListener('dblclick',e=>{if(e.target.closest('button,a'))return;const rect=stageRect;zoomAt(1.8,e.clientX-rect.left,e.clientY-rect.top);});
+stage.addEventListener('dblclick',e=>{if(catalogue.isOpen||e.target.closest('button,a,.catalogue-drawer'))return;const rect=stageRect;zoomAt(1.8,e.clientX-rect.left,e.clientY-rect.top);});
 
 $('pan-left').onclick=()=>pan(-state.w*.55);$('pan-right').onclick=()=>pan(state.w*.55);
 document.querySelector('.wordmark').onclick=e=>{e.preventDefault();home();stage.focus();};
 $('zoom-in').onclick=()=>zoomAt(1.4);$('zoom-out').onclick=()=>zoomAt(1/1.4);$('home-btn').onclick=home;
+$('search-btn').onclick=()=>{void catalogue.open();};
 $('explore-btn').onclick=()=>{const p=nearestPortal();goInside(p.tx,p.ty);};
 function updateMotion(){document.body.classList.toggle('paused',paused);$('motion-btn').setAttribute('aria-pressed',String(paused));$('motion-btn').setAttribute('aria-label',paused?'Resume little animations':'Pause little animations');$('motion-btn').title=paused?'Resume little animations':'Pause little animations';}
 $('motion-btn').onclick=()=>{paused=!paused;updateMotion();};updateMotion();
 reduced.addEventListener('change',e=>{if(e.matches)detailTransitions.finishAll();paused=e.matches;updateMotion();});
-document.addEventListener('visibilitychange',()=>{if(document.hidden)detailTransitions.finishAll();document.body.classList.toggle('is-background',document.hidden);if(!document.hidden){requestDraw();scheduleBuild();}});
-window.addEventListener('pagehide',()=>detailTransitions.finishAll());
+document.addEventListener('visibilitychange',()=>{if(document.hidden){detailTransitions.finishAll();resetCatalogue();}document.body.classList.toggle('is-background',document.hidden);if(!document.hidden){requestDraw();scheduleBuild();}});
+window.addEventListener('pagehide',()=>{detailTransitions.finishAll();resetCatalogue();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&catalogue.isOpen&&!$('catalogue-search').open){e.preventDefault();void catalogue.close();}});
 stage.addEventListener('keydown',e=>{
+ if(catalogue.isOpen||e.isComposing)return;
+ if(e.target.closest('.catalogue-drawer')){if(e.key==='Enter'||e.key===' '){e.preventDefault();void catalogue.open();}return;}
  if(e.target.closest('button,a,input,select'))return;
  const actions={'ArrowLeft':()=>pan(-180),'ArrowRight':()=>pan(180),'ArrowUp':()=>pan(0,-160),'ArrowDown':()=>pan(0,160),'+':()=>zoomAt(1.35),'=':()=>zoomAt(1.35),'-':()=>zoomAt(1/1.35),'Home':home,'Enter':()=>{const p=nearestPortal();goInside(p.tx,p.ty);},'d':()=>{const next=DISCOVERIES.findIndex((_,i)=>!found.has(i));discover(next<0?0:next);}};
  if(actions[e.key]){e.preventDefault();actions[e.key]();}
@@ -432,4 +466,4 @@ function saveSVG() {
 $('export-btn').onclick=saveSVG;
 updateDiscoveryCounter();resize(true);new ResizeObserver(()=>resize()).observe(stage);
 // Read-only diagnostics make precision, tile limits, and recursive levels inspectable.
-window.library={get state(){return {...state,parents:parents.length,tiles:tiles.size,pooledTiles:tilePool.size,pooledBytes:poolBytes,pooledNodes:poolNodes,markupBytes,portalRecords:portalRegistry.size,queuedTiles:buildQueue.length,pendingBuild:buildFrame!==0,pendingDetails:settleTimer!==0,quality:currentQuality,labelScale,discoveries:found.size,fadingDetails:detailTransitions.activeCount,retiredDetailNodes:detailTransitions.retainedNodes,peakDetailNodes:detailTransitions.peakNodes};},home,zoomAt,goInside,saveSVG};
+window.library={get state(){return {...state,parents:parents.length,tiles:tiles.size,pooledTiles:tilePool.size,pooledBytes:poolBytes,pooledNodes:poolNodes,markupBytes,portalRecords:portalRegistry.size,queuedTiles:buildQueue.length,pendingBuild:buildFrame!==0,pendingDetails:settleTimer!==0,quality:currentQuality,labelScale,discoveries:found.size,fadingDetails:detailTransitions.activeCount,retiredDetailNodes:detailTransitions.retainedNodes,peakDetailNodes:detailTransitions.peakNodes,cataloguePhase:catalogueJourney.phase,highlightedBook:catalogueJourney.highlightedBook};},home,zoomAt,goInside,saveSVG};

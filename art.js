@@ -1,9 +1,9 @@
 import {BOOKS, DISCOVERIES} from './catalog.js';
 import {motif} from './motifs.js';
-import {renderBook,withBookScale} from './books.js';
-import {renderBendingShelf, overviewBendingShelf, bendingNook} from './shelves.js';
+import {renderBook,withBookScale,bookOccurrenceKey,captureBookGeometry,withBookTransform} from './books.js';
+import {renderBendingShelf, overviewBendingShelf, bendingNook,collectBendingBooks} from './shelves.js';
 import {pottedPlant, trailingVine} from './foliage.js';
-import {renderMathShelf, overviewMathShelf} from './math-shelves.js';
+import {renderMathShelf, overviewMathShelf,mathShelfGeometry} from './math-shelves.js';
 import {HAT_ATTRIBUTION} from './hat-tiles.js';
 
 export const W=1080, H=1120, INK='#382c27';
@@ -58,11 +58,28 @@ export function shelfLayout(tx,ty,universe=1){
   const q=mathRooms[Math.floor(mr()*mathRooms.length)];q.shape=mr()<.5?'penrose':'hat';q.angle=0;
  }
  if(tx===0&&ty===0&&universe===17){rooms[1].shape='penrose';rooms[1].angle=0;rooms[7].shape='hat';rooms[7].angle=0;}
+ // A flat ordinary shelf gives the little card catalogue a permanent home.
+ // Reserving its room before drawing keeps every level of detail consistent.
+ const drawerRooms=rooms.filter(q=>!['portal','round','curved','folded','penrose','hat'].includes(q.shape)&&!q.angle&&q.width>140&&q.height>80);
+ let drawerRoom=drawerRooms[hash(seed,'catalogue-room')%Math.max(1,drawerRooms.length)];
+ if(!drawerRoom){drawerRoom=rooms.filter(q=>!['portal','penrose','hat'].includes(q.shape)).reduce((a,b)=>a.width*a.height>b.width*b.height?a:b);drawerRoom.shape='rect';drawerRoom.angle=0;}
+ const drawerWidth=Math.min(172,Math.max(96,drawerRoom.width*.49),drawerRoom.width-42),drawerHeight=Math.min(56,drawerRoom.height-18);
+ drawerRoom.catalogue={key:`catalogue-${universe}-${tx}-${ty}`,x:drawerRoom.x+drawerRoom.width-drawerWidth-5,y:drawerRoom.base-drawerHeight,w:drawerWidth,h:drawerHeight};
  const k=Math.min(.235,(target.width-48)/W,(target.height-70)/H);
  const portal={x:target.x+(target.width-W*k)/2,y:target.base-H*k-15,w:W*k,h:H*k,k,room:rooms.indexOf(target)};
  const layout={seed,columns,rooms,portal};layoutCache.set(key,layout);if(layoutCache.size>180)layoutCache.delete(layoutCache.keys().next().value);return layout;
 }
 export function getPortal(tx,ty,universe=1){const p=shelfLayout(tx,ty,universe).portal;return{...p,seed:portalSeeds.get(`${universe}:${tx}:${ty}`)??hash(universe,tx,ty,'inside')};}
+
+/** World-space drawer bounds, matching the SVG's stable data-catalogue key. */
+export function getDrawers(tx,ty,seed=1){
+ return shelfLayout(tx,ty,seed).rooms.filter(q=>q.catalogue).map(q=>({...q.catalogue,x:q.catalogue.x+tx*W,y:q.catalogue.y+ty*H,tx,ty,seed}));
+}
+
+function catalogueDrawer(d,quality='full'){
+ const {x,y,w,h,key}=d,fine=quality==='full'||quality==='compact',cx=w/2;
+ return `<g class="catalogue-drawer" data-catalogue="${key}" data-drawer-bounds="${x},${y},${w},${h}" transform="translate(${x} ${y})" ${quality==='preview'?'aria-hidden="true"':'role="button" tabindex="0" aria-label="Open the card catalogue to find a book"'}><title>The card catalogue: find a book in the library.</title><path d="M-3 3H${w+3}V${h+2}H-3Z" fill="#32291f"/><rect width="${w}" height="${h}" rx="2" fill="#6d492e" stroke="${INK}" stroke-width="1.8"/><path d="M3 3H${w-3}V${h-3}H3Z" fill="url(#wood)" stroke="#402d20" stroke-width="1.2"/>${fine?`<path d="M3 3H${w-3}V${h-3}H3Z" fill="url(#grain)"/>`:''}<path d="M5 5H${w-5}M5 ${h-5}H${w-5}" stroke="#e3bf80" stroke-width=".8" opacity=".8"/><rect x="${cx-31}" y="${h*.19}" width="62" height="${h*.30}" rx="1.3" fill="#ad8540" stroke="#634820" stroke-width=".85"/><rect x="${cx-26}" y="${h*.19+3}" width="52" height="${h*.30-6}" fill="#eee0b9"/>${fine?`<text x="${cx}" y="${h*.19+11}" text-anchor="middle" font-family="Georgia,serif" font-size="6.6" letter-spacing=".65" fill="#4a3b29">CATALOGUE</text>`:''}<path d="M${cx-18} ${h*.70}h36v5h-36Z" fill="#bb9755" stroke="#654a27" stroke-width=".8"/><path d="M${cx-12} ${h*.70+3}v5q12 7 24 0v-5" fill="none" stroke="#654a27" stroke-width="4"/><path d="M${cx-12} ${h*.70+2}v5q12 7 24 0v-5" fill="none" stroke="#d9b76d" stroke-width="2.4"/></g>`;
+}
 
 export const definitions=`<defs>
  <linearGradient id="wood" x2="0" y2="1"><stop stop-color="#bd995e"/><stop offset=".16" stop-color="#e1bd7a"/><stop offset=".47" stop-color="#b58b4e"/><stop offset="1" stop-color="#8a6039"/></linearGradient>
@@ -113,16 +130,17 @@ function leaningCluster(x,base,available,maxH,seed,r,quality='full'){
   }
   const span=volumes.at(-1).x+volumes.at(-1).width;
   if(span>available||volumes.some(v=>{const b=rotatedBounds(v.width,v.height,v.angle);return v.y+b.minY<base-maxH+.5;}))continue;
-  let out=`<g class="leaning-cluster leaning-book-group" data-contact-count="${contacts.length}" data-contact-points="${contacts.map(p=>`${(x+p.x).toFixed(4)},${p.y.toFixed(4)}`).join(';')}" data-cluster-bounds="${x},${base-maxH},${span},${maxH}">`;
-  volumes.forEach((v,i)=>{out+=`<g class="leaning-volume" data-neighbor="${i}"${contacts[i]?` data-contact="${(x+contacts[i].x).toFixed(4)},${contacts[i].y.toFixed(4)}" data-contact-local="${v.width-1},${-v.height+1.9},1.595,${-contacts[i].nextDistance}"`:''}>${renderBook({x:x+v.x,y:v.y,width:v.width,height:v.height,angle:v.angle,id:Math.floor(r()*BOOKS.length),seed:hash(seed,i,'leaning'),detail:quality})}</g>`;});
-  return{markup:out+'</g>',span,count};
+  const metadata=quality==='metadata';
+  let out=metadata?'':`<g class="leaning-cluster leaning-book-group" data-contact-count="${contacts.length}" data-contact-points="${contacts.map(p=>`${(x+p.x).toFixed(4)},${p.y.toFixed(4)}`).join(';')}" data-cluster-bounds="${x},${base-maxH},${span},${maxH}">`;
+  volumes.forEach((v,i)=>{if(!metadata)out+=`<g class="leaning-volume" data-neighbor="${i}"${contacts[i]?` data-contact="${(x+contacts[i].x).toFixed(4)},${contacts[i].y.toFixed(4)}" data-contact-local="${v.width-1},${-v.height+1.9},1.595,${-contacts[i].nextDistance}"`:''}>`;out+=renderBook({x:x+v.x,y:v.y,width:v.width,height:v.height,angle:v.angle,id:Math.floor(r()*BOOKS.length),seed:hash(seed,i,'leaning'),detail:quality});if(!metadata)out+='</g>';});
+  return{markup:out+(metadata?'':'</g>'),span,count};
  }
  return null;
 }
 
 function uprightRun(x,base,width,maxH,seed,untidy=true,quality='full'){
  if(maxH<55)return'';
- const r=random(seed);let s=`<g class="book-run upright-book-run" data-run-bounds="${x},${base-maxH},${width},${maxH}">`,cursor=x+2,i=0,clustered=false;
+ const r=random(seed),metadata=quality==='metadata';let s=metadata?'':`<g class="book-run upright-book-run" data-run-bounds="${x},${base-maxH},${width},${maxH}">`,cursor=x+2,i=0,clustered=false;
  while(cursor<x+width-13&&i<60){
   if(untidy&&!clustered&&i===1&&width>112&&maxH>95){
    const cluster=leaningCluster(cursor,base,x+width-cursor-2,maxH,hash(seed,i,'cluster'),r,quality);clustered=true;
@@ -138,20 +156,20 @@ function uprightRun(x,base,width,maxH,seed,untidy=true,quality='full'){
   if(w<12)break;
   s+=renderBook({x:cursor-box.minX,y:base-box.maxY,width:w,height:h,angle:a,id:Math.floor(r()*BOOKS.length),seed:hash(seed,i),detail:quality});
   cursor+=span+.5+r()*.7;i++;
- }return s+'</g>';
+ }return s+(metadata?'':'</g>');
 }
 function flatStack(x,base,width,maxH,seed,quality='full'){
  if(width<68||maxH<12)return'';
- const r=random(seed);let s=`<g class="book-run stacked-book-run" data-run-bounds="${x},${base-maxH},${width},${maxH}">`,floor=base,i=0;
+ const r=random(seed),metadata=quality==='metadata';let s=metadata?'':`<g class="book-run stacked-book-run" data-run-bounds="${x},${base-maxH},${width},${maxH}">`,floor=base,i=0;
  while(floor>base-maxH+9&&i<24){
   const length=(width-4)*(.88+r()*.115),a=90+(r()-.5)*(r()>.83?1.6:.6),t=a*Math.PI/180,budget=floor-(base-maxH);
   let thickness=Math.min(10.5+r()*7.5,(budget-length*Math.abs(Math.cos(t)))/Math.abs(Math.sin(t)));
   if(thickness<8.5)break;
   if(budget-thickness<10)thickness=(budget-length*Math.abs(Math.cos(t)))/Math.abs(Math.sin(t));
   const b=rotatedBounds(thickness,length,a),span=b.maxX-b.minX,jitter=1+r()*Math.max(0,width-span-2);
-  s+=`<g class="stack-volume" data-stack-floor="${floor}" data-stack-height="${b.maxY-b.minY}">${renderBook({x:x+jitter-b.minX,y:floor-b.maxY,width:thickness,height:length,angle:a,id:Math.floor(r()*BOOKS.length),seed:hash(seed,i,'flat'),detail:quality})}</g>`;
+  if(!metadata)s+=`<g class="stack-volume" data-stack-floor="${floor}" data-stack-height="${b.maxY-b.minY}">`;s+=renderBook({x:x+jitter-b.minX,y:floor-b.maxY,width:thickness,height:length,angle:a,id:Math.floor(r()*BOOKS.length),seed:hash(seed,i,'flat'),detail:quality});if(!metadata)s+='</g>';
   floor-=b.maxY-b.minY+1+r();i++;
- }return s+'</g>';
+ }return s+(metadata?'':'</g>');
 }
 function shelfBooks(x,base,width,height,seed,mode=0,quality='full'){
  if(width<14)return'';
@@ -300,6 +318,10 @@ function roomContents(q,index,layout,detail=true,quality='full'){
   s+=discovery(kind,cx+span*.22,ledge,Math.min(.95,radius/65),q.seed,quality)+beam(cx-span/2,ledge,span,12,false,quality)+'</g>';
   return s;
  }
+ if(q.catalogue){
+  const clearance=q.shape==='arch'?Math.min(height*.28,w*.24):0,usable=q.catalogue.x-localX-8;
+  return shelfBooks(localX,base,usable,Math.min(335,height-clearance-14),q.seed,Math.floor(r()*4),quality)+catalogueDrawer(q.catalogue,quality)+beam(localX-4,base,w+8,18,false,quality);
+ }
  const slope=q.angle?`translate(${localX} ${base}) rotate(${q.angle}) translate(${-localX} ${-base})`:'';
  s+=`<g${slope?` transform="${slope}"`:''}>`;
  const isGarden=(index+layout.seed)%7===2&&w>250&&height>185;
@@ -307,7 +329,7 @@ function roomContents(q,index,layout,detail=true,quality='full'){
  const objectScale=Math.min(1.08,(height-30)/125,w/235),objectWidth=110*objectScale;
  const objectX=localX+w-objectWidth*.52-9;
  let usable=w-objectWidth-16;
- if(isGarden){const scale=Math.min(1.3,(height-13)/165,w/280);const id=BOOKS.findIndex(b=>b.title==='The Secret Cardigan');s+=`<g class="book" data-book="${id}"><title>The Secret Cardigan</title>${motif('gardenbook',localX+w*.5,base,scale,q.seed,quality)}</g>`;s+=shelfBooks(localX,base,w*.25,height-18,hash(q.seed,'left'),1,quality)+shelfBooks(localX+w*.77,base,w*.21,height-25,hash(q.seed,'right'),0,quality);}
+ if(isGarden){const scale=Math.min(1.3,(height-13)/165,w/280);const id=BOOKS.findIndex(b=>b.title==='The Secret Cardigan'),key=bookOccurrenceKey({x:-57,y:-6,width:113,height:155,id,seed:q.seed});s+=`<g class="book garden-volume" data-book="${id}" data-book-key="${key}"><title>The Secret Cardigan</title>${motif('gardenbook',localX+w*.5,base,scale,q.seed,quality)}</g>`;s+=shelfBooks(localX,base,w*.25,height-18,hash(q.seed,'left'),1,quality)+shelfBooks(localX+w*.77,base,w*.21,height-25,hash(q.seed,'right'),0,quality);}
  else if(isImpossible){s+=motif('impossible',localX+w*.5,base,Math.min(w/215,(height-14)/165),q.seed,quality);s+=discovery('owl',localX+w-28,base,.48,q.seed,quality)+discovery('cheese',localX+25,base,.43,q.seed,quality);}
  else if(q.shape==='stepped'&&w>230&&height>215){
   const middle=base-height*.50,shelfX=localX+w*.51;
@@ -328,6 +350,97 @@ function roomContents(q,index,layout,detail=true,quality='full'){
  }
  s+=beam(localX-4,base,w+8,16+r()*7,false,quality);
  return s+'</g>';
+}
+
+// Search walks exactly the same book-run generators as the drawing. It does
+// not construct tiles, decorative SVG, portals, or browser DOM nodes.
+function collectRoomBooks(q,index,layout){
+ const x=q.x,w=q.width,base=q.base,height=q.height,quality='metadata',r=random(q.seed);
+ if(q.shape==='portal')return;
+ if(q.shape==='penrose'||q.shape==='hat'){
+  withBookTransform([1,0,0,1,q.x,q.top],()=>{for(const cell of mathShelfGeometry(q,q.seed).cells)for(const book of cell.books)renderBook(book);});return;
+ }
+ if(q.shape==='curved'||q.shape==='folded'){
+  withBookTransform([1,0,0,1,Number(q.x.toFixed(3)),Number(q.top.toFixed(3))],()=>collectBendingBooks(q,q.seed));return;
+ }
+ if(q.shape==='round'){
+  const radius=Math.min(w*.48,height*.47),cx=x+w/2,cy=q.top+height/2,ledge=cy+radius*.53,span=radius*1.55;
+  flatStack(cx-span/2,ledge,span*.58,radius,q.seed,quality);return;
+ }
+ if(q.catalogue){
+  const clearance=q.shape==='arch'?Math.min(height*.28,w*.24):0;
+  shelfBooks(x,base,q.catalogue.x-x-8,Math.min(335,height-clearance-14),q.seed,Math.floor(r()*4),quality);return;
+ }
+ const angle=(q.angle||0)*Math.PI/180,c=Math.cos(angle),s=Math.sin(angle),transform=[c,s,-s,c,x-x*c+base*s,base-x*s-base*c];
+ withBookTransform(transform,()=>{
+  const isGarden=(index+layout.seed)%7===2&&w>250&&height>185,isImpossible=(index+layout.seed)%11===3&&w>225&&height>190;
+  if(isGarden){
+   const scale=Math.min(1.3,(height-13)/165,w/280),id=BOOKS.findIndex(b=>b.title==='The Secret Cardigan');
+   withBookTransform([scale,0,0,scale,x+w*.5,base],()=>renderBook({x:-57,y:-6,width:113,height:155,id,seed:q.seed}));
+   shelfBooks(x,base,w*.25,height-18,hash(q.seed,'left'),1,quality);shelfBooks(x+w*.77,base,w*.21,height-25,hash(q.seed,'right'),0,quality);
+  }else if(isImpossible)return;
+  else if(q.shape==='stepped'&&w>230&&height>215){
+   const middle=base-height*.50,shelfX=x+w*.51;
+   shelfBooks(x,base,w*.44,height-25,hash(q.seed,'tall'),1,quality);shelfBooks(shelfX,middle,w*.46,height*.43,hash(q.seed,'upper'),2,quality);shelfBooks(shelfX,base,w*.18,height*.43,hash(q.seed,'lower'),0,quality);
+  }else{
+   const clearance=q.shape==='arch'?Math.min(height*.28,w*.24):0,plantScale=Math.min(.88,(height-clearance-20)/140,w/425),planted=w>230&&height>160&&index%3===1,plantWidth=planted?90*plantScale:0;
+   const objectScale=Math.min(1.08,(height-30)/125,w/235),usable=w-110*objectScale-16-plantWidth;
+   shelfBooks(x,base,usable,Math.min(335,height-clearance-14),q.seed,Math.floor(r()*4),quality);
+  }
+ });
+}
+
+const spatialBookCache=new Map(),SPATIAL_CACHE_LIMIT=36;
+// Unrotated runs fit their room; only the surrounding room may rotate, by at
+// most 4.1 degrees. Its pivot and all room points lie in this 1080×1120 bay,
+// so hypot(W,H)*sin(5deg) <136 is a strict center-displacement bound. The 200
+// unit halo also covers rounding and the special garden cover conservatively.
+export const BOOK_TILE_HALO=200;
+
+/** Main-world copies only: miniature doorway libraries belong to other seeds. */
+export function getTileBooks(tx,ty,seed=1){
+ const key=`${seed}:${tx}:${ty}`;
+ if(spatialBookCache.has(key)){const cached=spatialBookCache.get(key);spatialBookCache.delete(key);spatialBookCache.set(key,cached);return cached.books;}
+ const layout=shelfLayout(tx,ty,seed),books=captureBookGeometry(()=>withBookTransform([1,0,0,1,tx*W,ty*H],()=>layout.rooms.forEach((q,index)=>collectRoomBooks(q,index,layout))));
+ const byId=new Map();
+ for(const book of books){
+  Object.assign(book,{tx,ty,seed});
+  if(book.x<tx*W-BOOK_TILE_HALO||book.x>(tx+1)*W+BOOK_TILE_HALO||book.y<ty*H-BOOK_TILE_HALO||book.y>(ty+1)*H+BOOK_TILE_HALO)throw new RangeError('A book exceeds the spatial search tile halo.');
+  if(!byId.has(book.bookId))byId.set(book.bookId,[]);byId.get(book.bookId).push(book);
+ }
+ spatialBookCache.set(key,{books,byId});while(spatialBookCache.size>SPATIAL_CACHE_LIMIT)spatialBookCache.delete(spatialBookCache.keys().next().value);
+ return books;
+}
+
+function searchAbort(signal){if(signal?.aborted){const error=new Error('Book search cancelled.');error.name='AbortError';throw error;}}
+
+/** Find the exact nearest cover center. The unvisited-ring lower bound includes
+ * the tile halo; no fixed-radius approximation can silently choose a far copy.
+ * Yielding between small tile batches keeps searches cancellable and responsive. */
+export async function findNearestBook(bookId,{x,y,seed=1},{signal,yieldEvery=2,onProgress,maxRings=Infinity}={}){
+ if(!Number.isInteger(bookId)||bookId<0||bookId>=BOOKS.length)throw new RangeError('Unknown book title.');
+ if(![x,y,seed].every(Number.isFinite))throw new TypeError('Book search needs finite world coordinates and a library seed.');
+ const cx=Math.floor(x/W),cy=Math.floor(y/H),batch=Math.max(1,Math.floor(yieldEvery)||1);
+ let best=null,bestSquared=Infinity,examined=0,sliceStarted=performance.now();
+ for(let radius=0;radius<=maxRings;radius++){
+  const ring=[];
+  if(!radius)ring.push([cx,cy]);else{
+   for(let dx=-radius;dx<=radius;dx++){ring.push([cx+dx,cy-radius]);ring.push([cx+dx,cy+radius]);}
+   for(let dy=-radius+1;dy<radius;dy++){ring.push([cx-radius,cy+dy]);ring.push([cx+radius,cy+dy]);}
+  }
+  for(const [tx,ty] of ring){
+   searchAbort(signal);getTileBooks(tx,ty,seed);
+   for(const book of spatialBookCache.get(`${seed}:${tx}:${ty}`).byId.get(bookId)||[]){
+    const distance=(book.x-x)**2+(book.y-y)**2;
+    if(distance<bestSquared||(distance===bestSquared&&book.occurrenceKey<(best?.occurrenceKey||''))){best=book;bestSquared=distance;}
+   }
+   examined++;
+   if(examined%batch===0||performance.now()-sliceStarted>=8){onProgress?.({examined,radius,bestDistance:Math.sqrt(bestSquared)});await new Promise(resolve=>setTimeout(resolve,0));searchAbort(signal);sliceStarted=performance.now();}
+  }
+  const lowerBound=Math.max(0,Math.min(x-(cx-radius)*W-BOOK_TILE_HALO,(cx+radius+1)*W-x-BOOK_TILE_HALO,y-(cy-radius)*H-BOOK_TILE_HALO,(cy+radius+1)*H-y-BOOK_TILE_HALO));
+  if(best&&bestSquared<=lowerBound*lowerBound){searchAbort(signal);return{...best,distance:Math.sqrt(bestSquared),examinedTiles:examined,searchRadius:radius};}
+ }
+ throw new RangeError('No nearest copy was established within the requested search extent.');
 }
 
 export function tileMarkup(tx,ty,universe=1,detail=true,includePortal=true,quality='full',pixelScale=Infinity){
@@ -379,7 +492,9 @@ export function overviewMarkup(tx,ty,universe=1,translated=true){
   if(q.shape==='penrose'||q.shape==='hat'){s+=overviewMathShelf(q,q.seed);continue;}
   if(q.shape==='curved'||q.shape==='folded'){s+=overviewBendingShelf(q,q.seed);continue;}
   if(q.shape==='round'){s+=`<circle cx="${q.x+q.width/2}" cy="${q.top+q.height/2}" r="${Math.min(q.width,q.height)*.43}" fill="#b88c60" stroke="#433629" stroke-width="8"/>`;continue;}
-  let x=q.x+2;while(x<q.x+q.width-12){const remaining=q.x+q.width-x-2,w=Math.min(17+r()*18,remaining),h=Math.max(45,(q.height-20)*(.5+r()*.43));s+=`<rect x="${x}" y="${q.base-h}" width="${w}" height="${h}" rx="1.2" fill="${colors[Math.floor(r()*colors.length)]}" stroke="#342d24" stroke-width="1.4"/><path d="M${x+3} ${q.base-h+8}h${w-6}M${x+3} ${q.base-8}h${w-6}" stroke="#e8cb88" stroke-width="1.25"/>`;x+=w+.5+r()*.7;}
+  const right=q.catalogue?q.catalogue.x-8:q.x+q.width;
+  let x=q.x+2;while(x<right-12){const remaining=right-x-2,w=Math.min(17+r()*18,remaining),h=Math.max(45,(q.height-20)*(.5+r()*.43));s+=`<rect x="${x}" y="${q.base-h}" width="${w}" height="${h}" rx="1.2" fill="${colors[Math.floor(r()*colors.length)]}" stroke="#342d24" stroke-width="1.4"/><path d="M${x+3} ${q.base-h+8}h${w-6}M${x+3} ${q.base-8}h${w-6}" stroke="#e8cb88" stroke-width="1.25"/>`;x+=w+.5+r()*.7;}
+  if(q.catalogue)s+=catalogueDrawer(q.catalogue,quality);
   s+=beam(q.x-3,q.base,q.width+6,17,false,quality);
  }
  for(const col of layout.columns)s+=beam(col.x-5,0,col.post,H,true,quality);
@@ -396,11 +511,12 @@ export function previewMarkup(tx,ty,universe=1,translated=true){
   out+=`<path d="${roomPath(q)}" fill="url(#${backdrops[hash(q.seed,'backdrop')%backdrops.length]})" stroke="#9b764e" stroke-width="7"/>`;
   if(q.shape==='penrose'||q.shape==='hat'){out+=overviewMathShelf(q,q.seed);continue;}
   if(q.shape==='curved'||q.shape==='folded'){out+=overviewBendingShelf(q,q.seed,'silhouette');continue;}
-  const r=random(q.seed),count=4+q.seed%3,width=(q.width-12)/count;
+  const r=random(q.seed),count=4+q.seed%3,available=q.catalogue?q.catalogue.x-q.x-8:q.width,width=(available-12)/count;
   for(let i=0;i<count;i++){
    const h=(q.height-28)*(.48+r()*.43),x=q.x+5+i*width;
    out+=`<path d="M${x} ${q.base}V${q.base-h}h${width-2}V${q.base}Z" fill="${colors[Math.floor(r()*colors.length)]}"/>`;
   }
+  if(q.catalogue)out+=catalogueDrawer(q.catalogue,quality);
   out+=beam(q.x-3,q.base,q.width+6,17,false,quality);
  }
  for(const col of layout.columns)out+=beam(col.x-5,0,col.post,H,true,quality);

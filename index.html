@@ -112,6 +112,9 @@
           </button>
         </div>
         <span class="dock-divider" aria-hidden="true"></span>
+        <button id="search-btn" class="icon-button" type="button" aria-label="Search the card catalogue" title="Search the card catalogue" aria-haspopup="dialog" aria-controls="catalogue-search" aria-expanded="false">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="4.5"/><path d="m12 12 4 4M6.5 8.5h4"/></svg>
+        </button>
         <button id="home-btn" class="icon-button" type="button" aria-label="Return to the beginning" title="Return to the beginning (Home)">
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m3 9 7-6 7 6M5 8v9h10V8M8 17v-6h4v6"/></svg>
         </button>
@@ -132,6 +135,38 @@
       <a class="inspiration-credit" href="https://en.wikipedia.org/wiki/Colin_Thompson_(writer)" target="_blank" rel="noopener noreferrer">Inspired by Colin Thompson</a>
       <p id="status" class="sr-only" role="status" aria-live="polite"></p>
     </main>
+
+    <dialog id="catalogue-search" class="catalogue-search" aria-label="The card catalogue">
+      <div class="catalogue-cabinet">
+        <button id="catalogue-close" class="catalogue-close" type="button" aria-label="Close the catalogue drawer">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg>
+        </button>
+        <div class="catalogue-tray">
+          <div class="catalogue-paper-stack" aria-hidden="true">
+            <span class="catalogue-divider">A–F</span>
+            <span class="catalogue-divider">G–L</span>
+            <span class="catalogue-divider">M–R</span>
+            <span class="catalogue-divider">S–Z</span>
+          </div>
+          <button id="catalogue-result" class="catalogue-result" type="button">
+            <span id="catalogue-result-number" class="catalogue-card-number"></span>
+            <span id="catalogue-result-title" class="catalogue-card-title"></span>
+            <span id="catalogue-result-author" class="catalogue-card-author"></span>
+            <span id="catalogue-result-original" class="catalogue-card-original"></span>
+            <span class="catalogue-card-action">Find this book <span aria-hidden="true">↗</span></span>
+            <span class="catalogue-card-hole" aria-hidden="true"></span>
+          </button>
+          <form id="catalogue-form" class="catalogue-front" role="search">
+            <div class="catalogue-label-holder">
+              <label for="catalogue-query">Find a book</label>
+              <input id="catalogue-query" type="search" autocomplete="off" spellcheck="false" enterkeyhint="search" placeholder="Start a small search…" autofocus />
+            </div>
+            <span class="catalogue-handle" aria-hidden="true"></span>
+          </form>
+        </div>
+        <p id="catalogue-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+      </div>
+    </dialog>
 
     <dialog id="book-reader" class="book-reader" aria-labelledby="reader-title">
       <div class="reader-heading">

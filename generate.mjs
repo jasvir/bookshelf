@@ -15,6 +15,8 @@ import * as sceneModule from './scene.js';
 import * as detailTransitionsModule from './detail-transitions.js';
 import * as nanoModule from './nano.js';
 import * as readerModule from './book-reader.js';
+import * as catalogueSearchModule from './catalogue-search.js';
+import * as catalogueJourneyModule from './catalogue-journey.js';
 
 const { W, H, definitions, tileMarkup } = artModule;
 const run = promisify(execFile);
@@ -37,9 +39,9 @@ function inlineModule(name, source, namespace) {
   return `// ${name}\nconst { ${names} } = (() => {\n${stripModule(source)}\nreturn { ${names} };\n})();`;
 }
 
-const [htmlSource, cssSource, catalogSource, motifsSource, booksSource, shelvesSource, foliageSource, hatTilesSource, mathShelvesSource, artSource, sceneSource, detailTransitionsSource, nanoSource, readerSource, appSource, faviconSource, noticesSource] = await Promise.all([
+const [htmlSource, cssSource, catalogSource, motifsSource, booksSource, shelvesSource, foliageSource, hatTilesSource, mathShelvesSource, artSource, sceneSource, detailTransitionsSource, nanoSource, readerSource, catalogueSearchSource, catalogueJourneySource, appSource, faviconSource, noticesSource] = await Promise.all([
   read('index.html'), read('styles.css'), read('catalog.js'),
-  read('motifs.js'), read('books.js'), read('shelves.js'), read('foliage.js'), read('hat-tiles.js'), read('math-shelves.js'), read('art.js'), read('scene.js'), read('detail-transitions.js'), read('nano.js'), read('book-reader.js'), read('app.js'), read('favicon.svg'), read('THIRD_PARTY_NOTICES.txt')
+  read('motifs.js'), read('books.js'), read('shelves.js'), read('foliage.js'), read('hat-tiles.js'), read('math-shelves.js'), read('art.js'), read('scene.js'), read('detail-transitions.js'), read('nano.js'), read('book-reader.js'), read('catalogue-search.js'), read('catalogue-journey.js'), read('app.js'), read('favicon.svg'), read('THIRD_PARTY_NOTICES.txt')
 ]);
 const script = [
   inlineModule('catalog.js', catalogSource, catalogModule),
@@ -54,6 +56,8 @@ const script = [
   inlineModule('detail-transitions.js', detailTransitionsSource, detailTransitionsModule),
   inlineModule('nano.js', nanoSource, nanoModule),
   inlineModule('book-reader.js', readerSource, readerModule),
+  inlineModule('catalogue-search.js', catalogueSearchSource, catalogueSearchModule),
+  inlineModule('catalogue-journey.js', catalogueJourneySource, catalogueJourneyModule),
   `// app.js\n${stripModule(appSource)}`
 ].join('\n\n');
 

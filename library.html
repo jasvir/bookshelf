@@ -113,6 +113,10 @@ button svg, .discovery-counter svg { width: 19px; height: 19px; fill: none; stro
 @keyframes detail-arrive { from { opacity: 0; } to { opacity: 1; } }
 /* Decorative foliage can drape over a spine or plaque without hiding its tap target. */
 #world .trailing-vine { pointer-events: none; }
+.catalogue-drawer.is-catalogue-source { visibility: hidden; }
+.catalogue-book-highlight { pointer-events: none; }
+.catalogue-book-glow { fill: none; stroke: #ffe28a; stroke-width: 7; opacity: .8; filter: drop-shadow(0 0 5px #ffd44b); }
+.catalogue-book-outline { fill: none; stroke: #fff5c0; stroke-width: 2.5; }
 
 .intro-chip, .discovery-counter, .navigation-dock, .scene-caption, .view-details, .book-toast { position: absolute; z-index: 2; }
 .intro-chip {
@@ -181,6 +185,140 @@ body.paused .play-icon, #motion-btn[aria-pressed="true"] .play-icon { display: b
 }
 .book-look-inside:hover { background: #dae9c7; }
 .book-look-inside svg { width: 16px; height: 16px; }
+
+.catalogue-search {
+  --drawer-origin-x: 50%;
+  --drawer-origin-y: 82%;
+  --drawer-origin-scale: 1;
+  position: fixed;
+  inset: auto;
+  width: min(380px, calc(100vw - 24px));
+  max-width: none;
+  max-height: var(--catalogue-available-height, calc(100dvh - 24px));
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  color: #372719;
+  cursor: default;
+  touch-action: auto;
+}
+.catalogue-search::backdrop { background: #3425150a; }
+.catalogue-cabinet {
+  position: relative;
+  padding: 13px 16px 8px;
+  border: 2px solid #49301f;
+  border-radius: 5px 5px 8px 8px;
+  background: repeating-linear-gradient(2deg, transparent 0 17px, #402b231a 18px, transparent 20px 28px), linear-gradient(90deg, #765234, #a57645 7%, #bc8a55 48%, #875a36 96%, #60422b);
+  box-shadow: inset 0 1px #e5be83, inset 0 -5px #68452c, 0 14px 24px #21180f55, 0 2px 3px #21180f66;
+  transform-origin: var(--drawer-origin-x) var(--drawer-origin-y);
+  max-height: var(--catalogue-available-height, calc(100dvh - 24px));
+  overflow-y: auto;
+}
+.catalogue-close { position: absolute; z-index: 5; top: 4px; right: 4px; display: inline-grid; place-items: center; min-width: 32px; min-height: 32px; padding: 5px; border: 1px solid #583a25; border-radius: 50%; background: #5a3a2699; color: #fff2d1; box-shadow: inset 0 1px #d6a672; }
+.catalogue-close:hover { background: #4d301f; }
+.catalogue-close svg { width: 16px; height: 16px; }
+.catalogue-tray { position: relative; height: 280px; perspective: 800px; isolation: isolate; }
+.catalogue-tray::before { content: ""; position: absolute; inset: 52px -5px 7px; border: 6px solid #563b29; border-radius: 3px; background: linear-gradient(#352c1f, #5e462d); box-shadow: inset 0 4px 10px #24190f99; transform: rotateX(9deg); }
+.catalogue-paper-stack { position: absolute; inset: 0 10px 85px; pointer-events: none; }
+.catalogue-divider { position: absolute; inset: 24px 0 0; padding: 8px 11px; border: 1px solid #baa477; border-radius: 4px 4px 0 0; background: repeating-linear-gradient(#efe1bc 0 17px, #bcc2ac 18px, #efe1bc 19px); color: #81623f; font: 600 10px/1.3 Georgia, serif; box-shadow: 0 -1px 2px #3e2a1722; transform: translateY(10px) rotate(-3deg); transform-origin: 50% 100%; }
+.catalogue-divider:nth-child(2) { inset: 30px 3px 0; padding-left: 72px; background-color: #f3e6c8; transform: rotate(2deg); }
+.catalogue-divider:nth-child(3) { inset: 36px 5px 0; padding-left: 144px; transform: rotate(-1deg); }
+.catalogue-divider:nth-child(4) { inset: 42px 8px 0; padding-left: 215px; transform: rotate(1.5deg); }
+.catalogue-result, .catalogue-departing-card {
+  position: absolute;
+  z-index: 1;
+  right: 16px;
+  bottom: 60px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  height: 193px;
+  padding: 15px 18px 18px;
+  overflow: hidden;
+  border: 1px solid #c3ae80;
+  border-radius: 4px 4px 1px 1px;
+  background: linear-gradient(90deg, transparent 29px, #c15a5433 30px, transparent 31px), repeating-linear-gradient(#fff5d6 0 23px, #8bada947 24px, #fff5d6 25px);
+  box-shadow: 0 1px 3px #39261966, inset 0 0 15px #bd95572b;
+  color: #392f25;
+  text-align: left;
+  transform: translateY(10px) rotate(-1deg);
+  transform-origin: 50% 100%;
+  transition: transform 360ms cubic-bezier(.2,.8,.2,1), box-shadow 360ms;
+}
+.catalogue-card-number { margin-bottom: 10px; font: 9px/1.3 "Courier New", monospace; color: #786744; letter-spacing: 1px; }
+.catalogue-card-title { max-width: 100%; margin-bottom: 7px; font: 600 19px/1.14 Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+.catalogue-card-author { font: 11px/1.35 "Courier New", monospace; }
+.catalogue-card-original { max-width: 100%; margin-top: 6px; font: italic 10px/1.4 Georgia, "Times New Roman", serif; color: #675941; }
+.catalogue-card-action { margin-top: auto; padding-top: 8px; color: #2f6455; font-size: 10px; font-weight: 600; }
+.catalogue-card-hole { position: absolute; bottom: 9px; left: calc(50% - 3px); width: 6px; height: 6px; border: 1px solid #ab986c; border-radius: 50%; background: #684c2d; box-shadow: inset 0 1px 2px #312316; }
+.catalogue-result:not(:disabled):hover, .catalogue-search.is-raised .catalogue-result { transform: translateY(-28px) rotate(0deg); box-shadow: 0 7px 12px #39261944; }
+.catalogue-result:focus-visible { outline: 3px solid #146e58; outline-offset: 3px; transform: translateY(-28px); }
+.catalogue-result:disabled { cursor: default; }
+.catalogue-departing-card { z-index: 2; pointer-events: none; transition: none; }
+.has-no-result #catalogue-result .catalogue-card-title { font-style: italic; }
+.has-no-result #catalogue-result .catalogue-card-action { visibility: hidden; }
+.catalogue-front {
+  position: absolute;
+  z-index: 3;
+  inset: auto -7px 0;
+  height: 99px;
+  padding: 10px 27px 20px;
+  border: 2px solid #50341f;
+  border-radius: 3px 3px 5px 5px;
+  background: repeating-linear-gradient(1deg, transparent 0 15px, #62412a33 17px, transparent 19px 31px), linear-gradient(90deg, #895b34, #bc8a52 12%, #be8e55 50%, #9b6b3b);
+  box-shadow: inset 0 2px #e4b97a, inset 0 -4px #674125, 0 -3px 6px #3a291e33;
+}
+.catalogue-label-holder { position: relative; padding: 8px 15px 10px; border: 0; border-radius: 1px; background: #fff2cd; }
+.catalogue-label-holder:focus-within { background: #fff9e7; }
+.catalogue-label-holder label { display: block; margin-bottom: 2px; font: 600 9px/1.1 Georgia, "Times New Roman", serif; color: #6c5835; letter-spacing: .8px; text-transform: uppercase; }
+#catalogue-query { display: block; width: 100%; min-width: 0; min-height: 26px; margin: 0; padding: 0; border: 0; border-radius: 0; outline: none; appearance: none; -webkit-appearance: none; background: transparent; color: #342c23; font: 16px/1.45 Georgia, "Times New Roman", serif; caret-color: #30694f; }
+#catalogue-query:focus-visible { outline: none; color: #203f30; }
+#catalogue-query::placeholder { color: #89785b; opacity: 1; font-style: italic; }
+.catalogue-handle { position: absolute; bottom: 8px; left: calc(50% - 24px); width: 48px; height: 11px; border: 3px solid #a87d36; border-top-width: 2px; border-radius: 2px 2px 9px 9px; box-shadow: 0 1px #e6c079, 0 3px 3px #49301d66, inset 0 1px #e2bd78; }
+.catalogue-search.is-opening .catalogue-cabinet { animation: catalogue-drawer-open 420ms cubic-bezier(.2,.7,.2,1) both; }
+.catalogue-search.is-opening .catalogue-divider { animation: catalogue-paper-arrive 420ms ease-out both; }
+.catalogue-search.is-closing .catalogue-cabinet { animation: catalogue-drawer-close 280ms ease-in both; pointer-events: none; }
+.catalogue-result.is-arriving { animation: catalogue-card-arrive 280ms cubic-bezier(.2,.7,.2,1) both; }
+.catalogue-departing-card.is-departing { animation: catalogue-card-away 280ms cubic-bezier(.4,0,.8,.4) both; }
+@keyframes catalogue-drawer-open { from { opacity: .25; transform: translateY(-15px) scale(var(--drawer-origin-scale)) rotateX(-15deg); } to { opacity: 1; transform: translateY(0) scale(1) rotateX(0deg); } }
+@keyframes catalogue-drawer-close { to { opacity: 0; transform: translateY(-18px) scale(.9) rotateX(12deg); } }
+@keyframes catalogue-paper-arrive { from { opacity: 0; transform: translateY(45px) rotateX(-35deg); } }
+@keyframes catalogue-card-arrive { from { opacity: 0; transform: translateY(-30px) rotateX(55deg) rotate(-1deg); } to { opacity: 1; transform: translateY(10px) rotate(-1deg); } }
+@keyframes catalogue-card-away { from { opacity: 1; transform: var(--catalogue-depart-from, translateY(10px) rotate(-1deg)); } to { opacity: 0; transform: translateY(30px) rotateX(-65deg) rotate(-1deg); } }
+@media (max-width: 600px) {
+  .navigation-dock { gap: 2px; padding-inline: 6px; }
+  .navigation-dock .dock-caption { display: none; }
+  .navigation-dock .dock-divider { margin-inline: 3px; }
+  .catalogue-cabinet { padding-inline: 12px; }
+  .catalogue-front { padding-inline: 18px; }
+  .catalogue-result, .catalogue-departing-card { right: 9px; left: 9px; padding-inline: 14px; }
+  .catalogue-card-title { font-size: 18px; }
+}
+@media (max-height: 540px) {
+  .catalogue-cabinet { padding-top: 6px; padding-bottom: 4px; }
+  .catalogue-tray { height: 225px; }
+  .catalogue-result, .catalogue-departing-card { height: 158px; bottom: 55px; padding-top: 9px; }
+  .catalogue-card-number { margin-bottom: 5px; }
+  .catalogue-card-title { font-size: 16px; margin-bottom: 4px; }
+  .catalogue-card-original { margin-top: 3px; font-size: 9px; }
+  .catalogue-card-action { padding-top: 3px; }
+}
+.catalogue-search.is-cramped .catalogue-cabinet { padding-top: 6px; padding-bottom: 4px; }
+.catalogue-search.is-cramped .catalogue-tray { height: 225px; }
+.catalogue-search.is-cramped :is(.catalogue-result,.catalogue-departing-card) { height: 158px; bottom: 55px; padding-top: 9px; }
+.catalogue-search.is-cramped .catalogue-card-number { margin-bottom: 5px; }
+.catalogue-search.is-cramped .catalogue-card-title { font-size: 16px; margin-bottom: 4px; }
+.catalogue-search.is-cramped .catalogue-card-original { margin-top: 3px; font-size: 9px; }
+.catalogue-search.is-cramped .catalogue-card-action { padding-top: 3px; }
+@media (pointer: coarse) {
+  .catalogue-close { min-width: 40px; min-height: 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .catalogue-search :is(.catalogue-cabinet,.catalogue-divider,.catalogue-result,.catalogue-departing-card) { animation: none !important; transition: none; }
+}
 
 .book-reader {
   --cover-color: #27877c;
@@ -2248,7 +2386,7 @@ return { motif, motifKinds };
 })();
 
 // books.js
-const { renderBook, withBookScale } = (() => {
+const { bookOccurrenceKey, captureBookGeometry, renderBook, withBookScale, withBookTransform } = (() => {
 
 
 // Every spine uses the same local coordinates. Rotating the complete book also
@@ -2286,6 +2424,39 @@ const TITLE_METRICS = BOOKS.map(book => {
 });
 
 let bookPixelScale = Infinity;
+let bookCapture = null;
+
+const multiplyBookMatrices = (a,b) => [a[0]*b[0]+a[2]*b[1],a[1]*b[0]+a[3]*b[1],a[0]*b[2]+a[2]*b[3],a[1]*b[2]+a[3]*b[3],a[0]*b[4]+a[2]*b[5]+a[4],a[1]*b[4]+a[3]*b[5]+a[5]];
+
+/** A placement's identity is independent of detail and text visibility. */
+function bookOccurrenceKey({x,y,width,height,angle=0,id=0,seed=1}) {
+  const bookId=((Math.trunc(id)%BOOKS.length)+BOOKS.length)%BOOKS.length;
+  const value=`${seed}:${x}:${y}:${bookId}:${angle}:${width}:${height}`;
+  return `book-${hash(value).toString(36)}-${hash(value,3335557771).toString(36)}`;
+}
+
+/** Capture the existing seeded placement calculations without building books. */
+function captureBookGeometry(draw) {
+  const previous=bookCapture,records=[];
+  bookCapture={records,matrix:[1,0,0,1,0,0]};
+  try { draw(); return records; } finally { bookCapture=previous; }
+}
+
+/** Include an ancestor SVG transform when collecting local book geometry. */
+function withBookTransform(matrix,draw) {
+  if(!bookCapture)return draw();
+  const previous=bookCapture.matrix;
+  bookCapture.matrix=multiplyBookMatrices(previous,matrix);
+  try { return draw(); } finally { bookCapture.matrix=previous; }
+}
+
+function captureBook(spec,bookId,occurrenceKey) {
+  const angle=n(spec.angle)*Math.PI/180,c=Math.cos(angle),s=Math.sin(angle),w=n(spec.width),h=n(spec.height);
+  const matrix=multiplyBookMatrices(bookCapture.matrix,[c,s,-s,c,n(spec.x),n(spec.y)]);
+  const corners=[[0,0],[w,0],[w,-h],[0,-h]].map(([x,y])=>({x:matrix[0]*x+matrix[2]*y+matrix[4],y:matrix[1]*x+matrix[3]*y+matrix[5]}));
+  const xs=corners.map(p=>p.x),ys=corners.map(p=>p.y);
+  bookCapture.records.push({bookId,occurrenceKey,x:corners.reduce((sum,p)=>sum+p.x,0)/4,y:corners.reduce((sum,p)=>sum+p.y,0)/4,w:w*Math.hypot(matrix[0],matrix[1]),h:h*Math.hypot(matrix[2],matrix[3]),angle:Math.atan2(matrix[1],matrix[0])*180/Math.PI,corners,matrix,bounds:{x:Math.min(...xs),y:Math.min(...ys),w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)}});
+}
 
 // Rendering a miniature does not permanently change the detail of its parent.
 // Print/export callers retain every label unless they explicitly supply scale.
@@ -2303,12 +2474,14 @@ function withBookScale(pixelScale, draw) {
 function renderBook({ x, y, width, height, angle = 0, id = 0, seed = 1, detail = 'full' }) {
   if (![x, y, width, height, angle].every(Number.isFinite) || width <= 0 || height <= 0) return '';
   const bookId = ((Math.trunc(id) % BOOKS.length) + BOOKS.length) % BOOKS.length;
+  const occurrenceKey=bookOccurrenceKey({x,y,width,height,angle,id:bookId,seed});
+  if(bookCapture){captureBook({x,y,width,height,angle},bookId,occurrenceKey);return '';}
   const book = TITLE_METRICS[bookId], title = book.title;
   const compact = detail === 'compact';
   const distant = detail === 'distant', preview = detail === 'preview';
   const w = width, h = height, key = `${seed}:${x}:${y}:${bookId}:${angle}:${w}:${h}`;
   const clipKey = compact ? `${key}:compact` : key;
-  const token = `${hash(clipKey).toString(36)}-${hash(clipKey, 3335557771).toString(36)}`;
+  const token = compact ? `${hash(clipKey).toString(36)}-${hash(clipKey, 3335557771).toString(36)}` : occurrenceKey.slice(5);
   const clip = `spine-title-${token}`, coverClip = `spine-cover-${token}`;
   const r = random(hash(key)), color = COVERS[Math.floor(r() * COVERS.length)];
   const cloth = r() > .48, ornate = r() > .25, panel = r() > .62, window = w > 30 && h > 105 && r() > .72;
@@ -2331,7 +2504,7 @@ function renderBook({ x, y, width, height, angle = 0, id = 0, seed = 1, detail =
   // inaccessible subpixel lettering, per-book clips and texture overlays are
   // absent from the DOM; the same seeded cover and transform survive zooming.
   if (distant || preview) {
-    let out = `<g class="book" data-book="${bookId}" data-angle="${angle}" data-width="${n(w)}" data-height="${n(h)}" data-detail="${detail}" aria-label="${book.escapedName}" transform="translate(${n(x)} ${n(y)}) rotate(${n(angle)})">${preview?'':`<title>${book.escapedName}</title>`}<path d="${cover}" fill="${color}" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/>`;
+    let out = `<g class="book" data-book="${bookId}" data-book-key="${occurrenceKey}" data-angle="${angle}" data-width="${n(w)}" data-height="${n(h)}" data-detail="${detail}" aria-label="${book.escapedName}" transform="translate(${n(x)} ${n(y)}) rotate(${n(angle)})">${preview?'':`<title>${book.escapedName}</title>`}<path d="${cover}" fill="${color}" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/>`;
     if (distant) out += `<path d="M${n(w-3)} ${n(-h+3)}h2.1v${n(h-6)}h-2.1Z" fill="#c2b08d" opacity=".8"/><path d="M1.8 ${n(topRib)}H${n(w-1.8)}M1.8 ${n(bottomRib)}H${n(w-1.8)}" stroke="${gold}" stroke-width="1.55"/>`;
     return out + '</g>';
   }
@@ -2342,7 +2515,7 @@ function renderBook({ x, y, width, height, angle = 0, id = 0, seed = 1, detail =
     if (i % 2) lightMarks += mark; else darkMarks += mark;
   }
 
-  let out = `<g class="book" data-book="${bookId}" data-angle="${angle}" data-width="${n(w)}" data-height="${n(h)}" data-detail="${compact?'compact':'full'}" aria-label="${book.escapedName}" transform="translate(${n(x)} ${n(y)}) rotate(${n(angle)})"><title>${book.escapedName}</title>
+  let out = `<g class="book" data-book="${bookId}" data-book-key="${occurrenceKey}" data-angle="${angle}" data-width="${n(w)}" data-height="${n(h)}" data-detail="${compact?'compact':'full'}" aria-label="${book.escapedName}" transform="translate(${n(x)} ${n(y)}) rotate(${n(angle)})"><title>${book.escapedName}</title>
     ${showTitle||!compact?`<defs>${showTitle?`<clipPath id="${clip}" clipPathUnits="userSpaceOnUse"><rect x="${n(labelX)}" y="${n(labelY)}" width="${n(labelW)}" height="${n(labelH)}"/></clipPath>`:''}${compact?'':`<clipPath id="${coverClip}" clipPathUnits="userSpaceOnUse"><path d="${cover}"/></clipPath>`}</defs>`:''}
     <path d="${cover}" fill="${color}" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/>
     ${compact?'':`<g clip-path="url(#${coverClip})">`}
@@ -2388,11 +2561,11 @@ function renderBook({ x, y, width, height, angle = 0, id = 0, seed = 1, detail =
   return out;
 }
 
-return { renderBook, withBookScale };
+return { bookOccurrenceKey, captureBookGeometry, renderBook, withBookScale, withBookTransform };
 })();
 
 // shelves.js
-const { bendingNook, overviewBendingShelf, renderBendingShelf } = (() => {
+const { bendingNook, collectBendingBooks, overviewBendingShelf, renderBendingShelf } = (() => {
 
 
 
@@ -2496,7 +2669,7 @@ function bookCorners(p, width, height) {
   return { x, y, corners: [[0,0],[width,0],[0,-height],[width,-height]].map(([a,b]) => ({ x:x+a*p.tx-b*p.ty, y:y+a*p.ty+b*p.tx })) };
 }
 
-function booksAlong(points, d, g, seed, index, detail, quality, m) {
+function booksAlong(points, d, g, seed, index, detail, quality, m,metadataOnly=false) {
   const r = random(hash(`${seed}:${index}:bending-books`));
   const nominal = Math.max(10,Math.min(22,d.width*.049));
   let cursor = Math.max(9,g.thickness), out = '', i = 0;
@@ -2508,9 +2681,9 @@ function booksAlong(points, d, g, seed, index, detail, quality, m) {
     let height = Math.max(23,g.bookHeight*(.70+r()*.28)*turn), box = bookCorners(p,width,height);
     for (let attempts=0; attempts<16 && box.corners.some(c=>c.x<3||c.x>d.width-3||c.y<3||c.y>d.height-3); attempts++) { height*=.88; box=bookCorners(p,width,height); }
     if (height>=17 && box.corners.every(c=>c.x>=2&&c.x<=d.width-2&&c.y>=2&&c.y<=d.height-2) && !occupiesNook(box.corners,d)) {
-      out += `<g class="shelf-following-book" data-shelf-path="${index}" data-path-distance="${num(center)}" data-tangent-angle="${num(p.angle)}" data-anchor="${num(p.x)},${num(p.y)}">`;
+      if(!metadataOnly)out += `<g class="shelf-following-book" data-shelf-path="${index}" data-path-distance="${num(center)}" data-tangent-angle="${num(p.angle)}" data-anchor="${num(p.x)},${num(p.y)}">`;
       out += renderBook({x:box.x,y:box.y,width,height,angle:p.angle,id:Math.floor(r()*BOOKS.length),seed:hash(`${seed}:${index}:${i}:spine`),detail:detail?quality:'preview'});
-      out += '</g>';
+      if(!metadataOnly)out += '</g>';
     }
     cursor += width+.55+r()*.45; i++;
   }
@@ -2597,10 +2770,18 @@ function render(q,seed,detail,quality='full') {
 /** A substantial architectural return, with books following the whole tangent. */
 function renderBendingShelf(q,seed=1,detail=true,quality='full') { return render(q,seed,detail,quality); }
 
+/** Traverse the same placement code without structural SVG or decorations.
+ * Call inside captureBookGeometry and its room's translation transform. */
+function collectBendingBooks(q,seed=1) {
+  const d=dimensions(q);if(!d)return;
+  const g=geometry(d);
+  for(const index of g.order)booksAlong(g.paths[index],d,g,seed,index,true,'preview',metrics(g.paths[index]),true);
+}
+
 /** The same shelf geometry with inexpensive colored book shapes for miniatures. */
 function overviewBendingShelf(q,seed=1,quality='preview') { return render(q,seed,false,quality); }
 
-return { bendingNook, overviewBendingShelf, renderBendingShelf };
+return { bendingNook, collectBendingBooks, overviewBendingShelf, renderBendingShelf };
 })();
 
 // foliage.js
@@ -3278,7 +3459,7 @@ return { mathShelfGeometry, mathShelfLandings, mathShelfPatchGeometry, overviewM
 })();
 
 // art.js
-const { H, INK, W, colors, definitions, esc, getPortal, hash, overviewMarkup, portalSeeds, previewMarkup, shelfLayout, tileMarkup } = (() => {
+const { BOOK_TILE_HALO, H, INK, W, colors, definitions, esc, findNearestBook, getDrawers, getPortal, getTileBooks, hash, overviewMarkup, portalSeeds, previewMarkup, shelfLayout, tileMarkup } = (() => {
 
 
 
@@ -3339,11 +3520,28 @@ function shelfLayout(tx,ty,universe=1){
   const q=mathRooms[Math.floor(mr()*mathRooms.length)];q.shape=mr()<.5?'penrose':'hat';q.angle=0;
  }
  if(tx===0&&ty===0&&universe===17){rooms[1].shape='penrose';rooms[1].angle=0;rooms[7].shape='hat';rooms[7].angle=0;}
+ // A flat ordinary shelf gives the little card catalogue a permanent home.
+ // Reserving its room before drawing keeps every level of detail consistent.
+ const drawerRooms=rooms.filter(q=>!['portal','round','curved','folded','penrose','hat'].includes(q.shape)&&!q.angle&&q.width>140&&q.height>80);
+ let drawerRoom=drawerRooms[hash(seed,'catalogue-room')%Math.max(1,drawerRooms.length)];
+ if(!drawerRoom){drawerRoom=rooms.filter(q=>!['portal','penrose','hat'].includes(q.shape)).reduce((a,b)=>a.width*a.height>b.width*b.height?a:b);drawerRoom.shape='rect';drawerRoom.angle=0;}
+ const drawerWidth=Math.min(172,Math.max(96,drawerRoom.width*.49),drawerRoom.width-42),drawerHeight=Math.min(56,drawerRoom.height-18);
+ drawerRoom.catalogue={key:`catalogue-${universe}-${tx}-${ty}`,x:drawerRoom.x+drawerRoom.width-drawerWidth-5,y:drawerRoom.base-drawerHeight,w:drawerWidth,h:drawerHeight};
  const k=Math.min(.235,(target.width-48)/W,(target.height-70)/H);
  const portal={x:target.x+(target.width-W*k)/2,y:target.base-H*k-15,w:W*k,h:H*k,k,room:rooms.indexOf(target)};
  const layout={seed,columns,rooms,portal};layoutCache.set(key,layout);if(layoutCache.size>180)layoutCache.delete(layoutCache.keys().next().value);return layout;
 }
 function getPortal(tx,ty,universe=1){const p=shelfLayout(tx,ty,universe).portal;return{...p,seed:portalSeeds.get(`${universe}:${tx}:${ty}`)??hash(universe,tx,ty,'inside')};}
+
+/** World-space drawer bounds, matching the SVG's stable data-catalogue key. */
+function getDrawers(tx,ty,seed=1){
+ return shelfLayout(tx,ty,seed).rooms.filter(q=>q.catalogue).map(q=>({...q.catalogue,x:q.catalogue.x+tx*W,y:q.catalogue.y+ty*H,tx,ty,seed}));
+}
+
+function catalogueDrawer(d,quality='full'){
+ const {x,y,w,h,key}=d,fine=quality==='full'||quality==='compact',cx=w/2;
+ return `<g class="catalogue-drawer" data-catalogue="${key}" data-drawer-bounds="${x},${y},${w},${h}" transform="translate(${x} ${y})" ${quality==='preview'?'aria-hidden="true"':'role="button" tabindex="0" aria-label="Open the card catalogue to find a book"'}><title>The card catalogue: find a book in the library.</title><path d="M-3 3H${w+3}V${h+2}H-3Z" fill="#32291f"/><rect width="${w}" height="${h}" rx="2" fill="#6d492e" stroke="${INK}" stroke-width="1.8"/><path d="M3 3H${w-3}V${h-3}H3Z" fill="url(#wood)" stroke="#402d20" stroke-width="1.2"/>${fine?`<path d="M3 3H${w-3}V${h-3}H3Z" fill="url(#grain)"/>`:''}<path d="M5 5H${w-5}M5 ${h-5}H${w-5}" stroke="#e3bf80" stroke-width=".8" opacity=".8"/><rect x="${cx-31}" y="${h*.19}" width="62" height="${h*.30}" rx="1.3" fill="#ad8540" stroke="#634820" stroke-width=".85"/><rect x="${cx-26}" y="${h*.19+3}" width="52" height="${h*.30-6}" fill="#eee0b9"/>${fine?`<text x="${cx}" y="${h*.19+11}" text-anchor="middle" font-family="Georgia,serif" font-size="6.6" letter-spacing=".65" fill="#4a3b29">CATALOGUE</text>`:''}<path d="M${cx-18} ${h*.70}h36v5h-36Z" fill="#bb9755" stroke="#654a27" stroke-width=".8"/><path d="M${cx-12} ${h*.70+3}v5q12 7 24 0v-5" fill="none" stroke="#654a27" stroke-width="4"/><path d="M${cx-12} ${h*.70+2}v5q12 7 24 0v-5" fill="none" stroke="#d9b76d" stroke-width="2.4"/></g>`;
+}
 
 const definitions=`<defs>
  <linearGradient id="wood" x2="0" y2="1"><stop stop-color="#bd995e"/><stop offset=".16" stop-color="#e1bd7a"/><stop offset=".47" stop-color="#b58b4e"/><stop offset="1" stop-color="#8a6039"/></linearGradient>
@@ -3394,16 +3592,17 @@ function leaningCluster(x,base,available,maxH,seed,r,quality='full'){
   }
   const span=volumes.at(-1).x+volumes.at(-1).width;
   if(span>available||volumes.some(v=>{const b=rotatedBounds(v.width,v.height,v.angle);return v.y+b.minY<base-maxH+.5;}))continue;
-  let out=`<g class="leaning-cluster leaning-book-group" data-contact-count="${contacts.length}" data-contact-points="${contacts.map(p=>`${(x+p.x).toFixed(4)},${p.y.toFixed(4)}`).join(';')}" data-cluster-bounds="${x},${base-maxH},${span},${maxH}">`;
-  volumes.forEach((v,i)=>{out+=`<g class="leaning-volume" data-neighbor="${i}"${contacts[i]?` data-contact="${(x+contacts[i].x).toFixed(4)},${contacts[i].y.toFixed(4)}" data-contact-local="${v.width-1},${-v.height+1.9},1.595,${-contacts[i].nextDistance}"`:''}>${renderBook({x:x+v.x,y:v.y,width:v.width,height:v.height,angle:v.angle,id:Math.floor(r()*BOOKS.length),seed:hash(seed,i,'leaning'),detail:quality})}</g>`;});
-  return{markup:out+'</g>',span,count};
+  const metadata=quality==='metadata';
+  let out=metadata?'':`<g class="leaning-cluster leaning-book-group" data-contact-count="${contacts.length}" data-contact-points="${contacts.map(p=>`${(x+p.x).toFixed(4)},${p.y.toFixed(4)}`).join(';')}" data-cluster-bounds="${x},${base-maxH},${span},${maxH}">`;
+  volumes.forEach((v,i)=>{if(!metadata)out+=`<g class="leaning-volume" data-neighbor="${i}"${contacts[i]?` data-contact="${(x+contacts[i].x).toFixed(4)},${contacts[i].y.toFixed(4)}" data-contact-local="${v.width-1},${-v.height+1.9},1.595,${-contacts[i].nextDistance}"`:''}>`;out+=renderBook({x:x+v.x,y:v.y,width:v.width,height:v.height,angle:v.angle,id:Math.floor(r()*BOOKS.length),seed:hash(seed,i,'leaning'),detail:quality});if(!metadata)out+='</g>';});
+  return{markup:out+(metadata?'':'</g>'),span,count};
  }
  return null;
 }
 
 function uprightRun(x,base,width,maxH,seed,untidy=true,quality='full'){
  if(maxH<55)return'';
- const r=random(seed);let s=`<g class="book-run upright-book-run" data-run-bounds="${x},${base-maxH},${width},${maxH}">`,cursor=x+2,i=0,clustered=false;
+ const r=random(seed),metadata=quality==='metadata';let s=metadata?'':`<g class="book-run upright-book-run" data-run-bounds="${x},${base-maxH},${width},${maxH}">`,cursor=x+2,i=0,clustered=false;
  while(cursor<x+width-13&&i<60){
   if(untidy&&!clustered&&i===1&&width>112&&maxH>95){
    const cluster=leaningCluster(cursor,base,x+width-cursor-2,maxH,hash(seed,i,'cluster'),r,quality);clustered=true;
@@ -3419,20 +3618,20 @@ function uprightRun(x,base,width,maxH,seed,untidy=true,quality='full'){
   if(w<12)break;
   s+=renderBook({x:cursor-box.minX,y:base-box.maxY,width:w,height:h,angle:a,id:Math.floor(r()*BOOKS.length),seed:hash(seed,i),detail:quality});
   cursor+=span+.5+r()*.7;i++;
- }return s+'</g>';
+ }return s+(metadata?'':'</g>');
 }
 function flatStack(x,base,width,maxH,seed,quality='full'){
  if(width<68||maxH<12)return'';
- const r=random(seed);let s=`<g class="book-run stacked-book-run" data-run-bounds="${x},${base-maxH},${width},${maxH}">`,floor=base,i=0;
+ const r=random(seed),metadata=quality==='metadata';let s=metadata?'':`<g class="book-run stacked-book-run" data-run-bounds="${x},${base-maxH},${width},${maxH}">`,floor=base,i=0;
  while(floor>base-maxH+9&&i<24){
   const length=(width-4)*(.88+r()*.115),a=90+(r()-.5)*(r()>.83?1.6:.6),t=a*Math.PI/180,budget=floor-(base-maxH);
   let thickness=Math.min(10.5+r()*7.5,(budget-length*Math.abs(Math.cos(t)))/Math.abs(Math.sin(t)));
   if(thickness<8.5)break;
   if(budget-thickness<10)thickness=(budget-length*Math.abs(Math.cos(t)))/Math.abs(Math.sin(t));
   const b=rotatedBounds(thickness,length,a),span=b.maxX-b.minX,jitter=1+r()*Math.max(0,width-span-2);
-  s+=`<g class="stack-volume" data-stack-floor="${floor}" data-stack-height="${b.maxY-b.minY}">${renderBook({x:x+jitter-b.minX,y:floor-b.maxY,width:thickness,height:length,angle:a,id:Math.floor(r()*BOOKS.length),seed:hash(seed,i,'flat'),detail:quality})}</g>`;
+  if(!metadata)s+=`<g class="stack-volume" data-stack-floor="${floor}" data-stack-height="${b.maxY-b.minY}">`;s+=renderBook({x:x+jitter-b.minX,y:floor-b.maxY,width:thickness,height:length,angle:a,id:Math.floor(r()*BOOKS.length),seed:hash(seed,i,'flat'),detail:quality});if(!metadata)s+='</g>';
   floor-=b.maxY-b.minY+1+r();i++;
- }return s+'</g>';
+ }return s+(metadata?'':'</g>');
 }
 function shelfBooks(x,base,width,height,seed,mode=0,quality='full'){
  if(width<14)return'';
@@ -3581,6 +3780,10 @@ function roomContents(q,index,layout,detail=true,quality='full'){
   s+=discovery(kind,cx+span*.22,ledge,Math.min(.95,radius/65),q.seed,quality)+beam(cx-span/2,ledge,span,12,false,quality)+'</g>';
   return s;
  }
+ if(q.catalogue){
+  const clearance=q.shape==='arch'?Math.min(height*.28,w*.24):0,usable=q.catalogue.x-localX-8;
+  return shelfBooks(localX,base,usable,Math.min(335,height-clearance-14),q.seed,Math.floor(r()*4),quality)+catalogueDrawer(q.catalogue,quality)+beam(localX-4,base,w+8,18,false,quality);
+ }
  const slope=q.angle?`translate(${localX} ${base}) rotate(${q.angle}) translate(${-localX} ${-base})`:'';
  s+=`<g${slope?` transform="${slope}"`:''}>`;
  const isGarden=(index+layout.seed)%7===2&&w>250&&height>185;
@@ -3588,7 +3791,7 @@ function roomContents(q,index,layout,detail=true,quality='full'){
  const objectScale=Math.min(1.08,(height-30)/125,w/235),objectWidth=110*objectScale;
  const objectX=localX+w-objectWidth*.52-9;
  let usable=w-objectWidth-16;
- if(isGarden){const scale=Math.min(1.3,(height-13)/165,w/280);const id=BOOKS.findIndex(b=>b.title==='The Secret Cardigan');s+=`<g class="book" data-book="${id}"><title>The Secret Cardigan</title>${motif('gardenbook',localX+w*.5,base,scale,q.seed,quality)}</g>`;s+=shelfBooks(localX,base,w*.25,height-18,hash(q.seed,'left'),1,quality)+shelfBooks(localX+w*.77,base,w*.21,height-25,hash(q.seed,'right'),0,quality);}
+ if(isGarden){const scale=Math.min(1.3,(height-13)/165,w/280);const id=BOOKS.findIndex(b=>b.title==='The Secret Cardigan'),key=bookOccurrenceKey({x:-57,y:-6,width:113,height:155,id,seed:q.seed});s+=`<g class="book garden-volume" data-book="${id}" data-book-key="${key}"><title>The Secret Cardigan</title>${motif('gardenbook',localX+w*.5,base,scale,q.seed,quality)}</g>`;s+=shelfBooks(localX,base,w*.25,height-18,hash(q.seed,'left'),1,quality)+shelfBooks(localX+w*.77,base,w*.21,height-25,hash(q.seed,'right'),0,quality);}
  else if(isImpossible){s+=motif('impossible',localX+w*.5,base,Math.min(w/215,(height-14)/165),q.seed,quality);s+=discovery('owl',localX+w-28,base,.48,q.seed,quality)+discovery('cheese',localX+25,base,.43,q.seed,quality);}
  else if(q.shape==='stepped'&&w>230&&height>215){
   const middle=base-height*.50,shelfX=localX+w*.51;
@@ -3609,6 +3812,97 @@ function roomContents(q,index,layout,detail=true,quality='full'){
  }
  s+=beam(localX-4,base,w+8,16+r()*7,false,quality);
  return s+'</g>';
+}
+
+// Search walks exactly the same book-run generators as the drawing. It does
+// not construct tiles, decorative SVG, portals, or browser DOM nodes.
+function collectRoomBooks(q,index,layout){
+ const x=q.x,w=q.width,base=q.base,height=q.height,quality='metadata',r=random(q.seed);
+ if(q.shape==='portal')return;
+ if(q.shape==='penrose'||q.shape==='hat'){
+  withBookTransform([1,0,0,1,q.x,q.top],()=>{for(const cell of mathShelfGeometry(q,q.seed).cells)for(const book of cell.books)renderBook(book);});return;
+ }
+ if(q.shape==='curved'||q.shape==='folded'){
+  withBookTransform([1,0,0,1,Number(q.x.toFixed(3)),Number(q.top.toFixed(3))],()=>collectBendingBooks(q,q.seed));return;
+ }
+ if(q.shape==='round'){
+  const radius=Math.min(w*.48,height*.47),cx=x+w/2,cy=q.top+height/2,ledge=cy+radius*.53,span=radius*1.55;
+  flatStack(cx-span/2,ledge,span*.58,radius,q.seed,quality);return;
+ }
+ if(q.catalogue){
+  const clearance=q.shape==='arch'?Math.min(height*.28,w*.24):0;
+  shelfBooks(x,base,q.catalogue.x-x-8,Math.min(335,height-clearance-14),q.seed,Math.floor(r()*4),quality);return;
+ }
+ const angle=(q.angle||0)*Math.PI/180,c=Math.cos(angle),s=Math.sin(angle),transform=[c,s,-s,c,x-x*c+base*s,base-x*s-base*c];
+ withBookTransform(transform,()=>{
+  const isGarden=(index+layout.seed)%7===2&&w>250&&height>185,isImpossible=(index+layout.seed)%11===3&&w>225&&height>190;
+  if(isGarden){
+   const scale=Math.min(1.3,(height-13)/165,w/280),id=BOOKS.findIndex(b=>b.title==='The Secret Cardigan');
+   withBookTransform([scale,0,0,scale,x+w*.5,base],()=>renderBook({x:-57,y:-6,width:113,height:155,id,seed:q.seed}));
+   shelfBooks(x,base,w*.25,height-18,hash(q.seed,'left'),1,quality);shelfBooks(x+w*.77,base,w*.21,height-25,hash(q.seed,'right'),0,quality);
+  }else if(isImpossible)return;
+  else if(q.shape==='stepped'&&w>230&&height>215){
+   const middle=base-height*.50,shelfX=x+w*.51;
+   shelfBooks(x,base,w*.44,height-25,hash(q.seed,'tall'),1,quality);shelfBooks(shelfX,middle,w*.46,height*.43,hash(q.seed,'upper'),2,quality);shelfBooks(shelfX,base,w*.18,height*.43,hash(q.seed,'lower'),0,quality);
+  }else{
+   const clearance=q.shape==='arch'?Math.min(height*.28,w*.24):0,plantScale=Math.min(.88,(height-clearance-20)/140,w/425),planted=w>230&&height>160&&index%3===1,plantWidth=planted?90*plantScale:0;
+   const objectScale=Math.min(1.08,(height-30)/125,w/235),usable=w-110*objectScale-16-plantWidth;
+   shelfBooks(x,base,usable,Math.min(335,height-clearance-14),q.seed,Math.floor(r()*4),quality);
+  }
+ });
+}
+
+const spatialBookCache=new Map(),SPATIAL_CACHE_LIMIT=36;
+// Unrotated runs fit their room; only the surrounding room may rotate, by at
+// most 4.1 degrees. Its pivot and all room points lie in this 1080×1120 bay,
+// so hypot(W,H)*sin(5deg) <136 is a strict center-displacement bound. The 200
+// unit halo also covers rounding and the special garden cover conservatively.
+const BOOK_TILE_HALO=200;
+
+/** Main-world copies only: miniature doorway libraries belong to other seeds. */
+function getTileBooks(tx,ty,seed=1){
+ const key=`${seed}:${tx}:${ty}`;
+ if(spatialBookCache.has(key)){const cached=spatialBookCache.get(key);spatialBookCache.delete(key);spatialBookCache.set(key,cached);return cached.books;}
+ const layout=shelfLayout(tx,ty,seed),books=captureBookGeometry(()=>withBookTransform([1,0,0,1,tx*W,ty*H],()=>layout.rooms.forEach((q,index)=>collectRoomBooks(q,index,layout))));
+ const byId=new Map();
+ for(const book of books){
+  Object.assign(book,{tx,ty,seed});
+  if(book.x<tx*W-BOOK_TILE_HALO||book.x>(tx+1)*W+BOOK_TILE_HALO||book.y<ty*H-BOOK_TILE_HALO||book.y>(ty+1)*H+BOOK_TILE_HALO)throw new RangeError('A book exceeds the spatial search tile halo.');
+  if(!byId.has(book.bookId))byId.set(book.bookId,[]);byId.get(book.bookId).push(book);
+ }
+ spatialBookCache.set(key,{books,byId});while(spatialBookCache.size>SPATIAL_CACHE_LIMIT)spatialBookCache.delete(spatialBookCache.keys().next().value);
+ return books;
+}
+
+function searchAbort(signal){if(signal?.aborted){const error=new Error('Book search cancelled.');error.name='AbortError';throw error;}}
+
+/** Find the exact nearest cover center. The unvisited-ring lower bound includes
+ * the tile halo; no fixed-radius approximation can silently choose a far copy.
+ * Yielding between small tile batches keeps searches cancellable and responsive. */
+async function findNearestBook(bookId,{x,y,seed=1},{signal,yieldEvery=2,onProgress,maxRings=Infinity}={}){
+ if(!Number.isInteger(bookId)||bookId<0||bookId>=BOOKS.length)throw new RangeError('Unknown book title.');
+ if(![x,y,seed].every(Number.isFinite))throw new TypeError('Book search needs finite world coordinates and a library seed.');
+ const cx=Math.floor(x/W),cy=Math.floor(y/H),batch=Math.max(1,Math.floor(yieldEvery)||1);
+ let best=null,bestSquared=Infinity,examined=0,sliceStarted=performance.now();
+ for(let radius=0;radius<=maxRings;radius++){
+  const ring=[];
+  if(!radius)ring.push([cx,cy]);else{
+   for(let dx=-radius;dx<=radius;dx++){ring.push([cx+dx,cy-radius]);ring.push([cx+dx,cy+radius]);}
+   for(let dy=-radius+1;dy<radius;dy++){ring.push([cx-radius,cy+dy]);ring.push([cx+radius,cy+dy]);}
+  }
+  for(const [tx,ty] of ring){
+   searchAbort(signal);getTileBooks(tx,ty,seed);
+   for(const book of spatialBookCache.get(`${seed}:${tx}:${ty}`).byId.get(bookId)||[]){
+    const distance=(book.x-x)**2+(book.y-y)**2;
+    if(distance<bestSquared||(distance===bestSquared&&book.occurrenceKey<(best?.occurrenceKey||''))){best=book;bestSquared=distance;}
+   }
+   examined++;
+   if(examined%batch===0||performance.now()-sliceStarted>=8){onProgress?.({examined,radius,bestDistance:Math.sqrt(bestSquared)});await new Promise(resolve=>setTimeout(resolve,0));searchAbort(signal);sliceStarted=performance.now();}
+  }
+  const lowerBound=Math.max(0,Math.min(x-(cx-radius)*W-BOOK_TILE_HALO,(cx+radius+1)*W-x-BOOK_TILE_HALO,y-(cy-radius)*H-BOOK_TILE_HALO,(cy+radius+1)*H-y-BOOK_TILE_HALO));
+  if(best&&bestSquared<=lowerBound*lowerBound){searchAbort(signal);return{...best,distance:Math.sqrt(bestSquared),examinedTiles:examined,searchRadius:radius};}
+ }
+ throw new RangeError('No nearest copy was established within the requested search extent.');
 }
 
 function tileMarkup(tx,ty,universe=1,detail=true,includePortal=true,quality='full',pixelScale=Infinity){
@@ -3660,7 +3954,9 @@ function overviewMarkup(tx,ty,universe=1,translated=true){
   if(q.shape==='penrose'||q.shape==='hat'){s+=overviewMathShelf(q,q.seed);continue;}
   if(q.shape==='curved'||q.shape==='folded'){s+=overviewBendingShelf(q,q.seed);continue;}
   if(q.shape==='round'){s+=`<circle cx="${q.x+q.width/2}" cy="${q.top+q.height/2}" r="${Math.min(q.width,q.height)*.43}" fill="#b88c60" stroke="#433629" stroke-width="8"/>`;continue;}
-  let x=q.x+2;while(x<q.x+q.width-12){const remaining=q.x+q.width-x-2,w=Math.min(17+r()*18,remaining),h=Math.max(45,(q.height-20)*(.5+r()*.43));s+=`<rect x="${x}" y="${q.base-h}" width="${w}" height="${h}" rx="1.2" fill="${colors[Math.floor(r()*colors.length)]}" stroke="#342d24" stroke-width="1.4"/><path d="M${x+3} ${q.base-h+8}h${w-6}M${x+3} ${q.base-8}h${w-6}" stroke="#e8cb88" stroke-width="1.25"/>`;x+=w+.5+r()*.7;}
+  const right=q.catalogue?q.catalogue.x-8:q.x+q.width;
+  let x=q.x+2;while(x<right-12){const remaining=right-x-2,w=Math.min(17+r()*18,remaining),h=Math.max(45,(q.height-20)*(.5+r()*.43));s+=`<rect x="${x}" y="${q.base-h}" width="${w}" height="${h}" rx="1.2" fill="${colors[Math.floor(r()*colors.length)]}" stroke="#342d24" stroke-width="1.4"/><path d="M${x+3} ${q.base-h+8}h${w-6}M${x+3} ${q.base-8}h${w-6}" stroke="#e8cb88" stroke-width="1.25"/>`;x+=w+.5+r()*.7;}
+  if(q.catalogue)s+=catalogueDrawer(q.catalogue,quality);
   s+=beam(q.x-3,q.base,q.width+6,17,false,quality);
  }
  for(const col of layout.columns)s+=beam(col.x-5,0,col.post,H,true,quality);
@@ -3677,18 +3973,19 @@ function previewMarkup(tx,ty,universe=1,translated=true){
   out+=`<path d="${roomPath(q)}" fill="url(#${backdrops[hash(q.seed,'backdrop')%backdrops.length]})" stroke="#9b764e" stroke-width="7"/>`;
   if(q.shape==='penrose'||q.shape==='hat'){out+=overviewMathShelf(q,q.seed);continue;}
   if(q.shape==='curved'||q.shape==='folded'){out+=overviewBendingShelf(q,q.seed,'silhouette');continue;}
-  const r=random(q.seed),count=4+q.seed%3,width=(q.width-12)/count;
+  const r=random(q.seed),count=4+q.seed%3,available=q.catalogue?q.catalogue.x-q.x-8:q.width,width=(available-12)/count;
   for(let i=0;i<count;i++){
    const h=(q.height-28)*(.48+r()*.43),x=q.x+5+i*width;
    out+=`<path d="M${x} ${q.base}V${q.base-h}h${width-2}V${q.base}Z" fill="${colors[Math.floor(r()*colors.length)]}"/>`;
   }
+  if(q.catalogue)out+=catalogueDrawer(q.catalogue,quality);
   out+=beam(q.x-3,q.base,q.width+6,17,false,quality);
  }
  for(const col of layout.columns)out+=beam(col.x-5,0,col.post,H,true,quality);
  return out+'</g>';
 }
 
-return { H, INK, W, colors, definitions, esc, getPortal, hash, overviewMarkup, portalSeeds, previewMarkup, shelfLayout, tileMarkup };
+return { BOOK_TILE_HALO, H, INK, W, colors, definitions, esc, findNearestBook, getDrawers, getPortal, getTileBooks, hash, overviewMarkup, portalSeeds, previewMarkup, shelfLayout, tileMarkup };
 })();
 
 // scene.js
@@ -4425,7 +4722,392 @@ function createBookReader({onOpen=()=>{},onClose=()=>{},announce=()=>{}}={}) {
 return { createBookReader };
 })();
 
+// catalogue-search.js
+const { createCatalogueSearch } = (() => {
+// A tiny working drawer: a few paper cards stand in for the whole catalogue.
+function createCatalogueSearch({ books, onApproach, onChoose, onCancel, announce = () => {} }) {
+  const dialog = document.getElementById('catalogue-search');
+  const query = document.getElementById('catalogue-query');
+  const form = document.getElementById('catalogue-form');
+  const result = document.getElementById('catalogue-result');
+  const resultTitle = document.getElementById('catalogue-result-title');
+  const resultAuthor = document.getElementById('catalogue-result-author');
+  const resultOriginal = document.getElementById('catalogue-result-original');
+  const resultNumber = document.getElementById('catalogue-result-number');
+  const status = document.getElementById('catalogue-status');
+  const trigger = document.getElementById('search-btn');
+  const closeButton = document.getElementById('catalogue-close');
+  if (!dialog || !query || !result) return { open: async () => {}, close: async () => {}, get isOpen() { return false; } };
+
+  const fold = value => String(value || '').normalize('NFKD').replace(/\p{M}/gu, '').toLocaleLowerCase('en').replace(/[^\p{L}\p{N}]/gu, '');
+  const collator = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
+  const entries = books.map((book, id) => ({ book, id, keys: [book.title, book.original, book.author].map(fold) }))
+    .sort((a, b) => collator.compare(a.book.title, b.book.title) || a.id - b.id);
+  const motionPreference = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  const reduceMotion = () => Boolean(motionPreference?.matches);
+  let active = false, closing = false, session = 0, selected = null, composing = false;
+  let previousFocus = null, anchor = null, raiseTimer = 0, statusTimer = 0, openingTimer = 0;
+  let closePromise = null, choiceIntent = 0, cardChange = null;
+  let closeReason = 'cancel', closeRestoreFocus = true, closeWaitTimer = 0, closeWaitResolve = null;
+
+  function clearTimers() {
+    clearTimeout(raiseTimer); clearTimeout(statusTimer); clearTimeout(openingTimer);
+    raiseTimer = statusTimer = openingTimer = 0;
+    finishCardChange();
+  }
+
+  function finishCardChange() {
+    cardChange?.finish();
+  }
+
+  function departingCard(wasRaised) {
+    finishCardChange();
+    const card = result.cloneNode(true);
+    // Keep the old paper and its lettering visible as it turns out of the way.
+    // Only the live card is interactive, and there is never a second set of IDs.
+    for (const node of [card, ...card.querySelectorAll('[id]')]) node.removeAttribute('id');
+    card.classList.add('catalogue-departing-card', 'is-departing');
+    card.classList.remove('is-arriving');
+    card.disabled = true;
+    card.setAttribute('tabindex', '-1');
+    card.setAttribute('aria-hidden', 'true');
+    card.setAttribute('inert', '');
+    card.removeAttribute('aria-label');
+    card.style.setProperty('--catalogue-depart-from', wasRaised ? 'translateY(-28px) rotate(0deg)' : 'translateY(10px) rotate(-1deg)');
+    return card;
+  }
+
+  function turnCard(card) {
+    const change = { card, timer: 0, finish: null };
+    const finish = () => {
+      if (cardChange !== change) return;
+      cardChange = null;
+      clearTimeout(change.timer);
+      card.removeEventListener('animationend', ended);
+      card.removeEventListener('animationcancel', ended);
+      card.remove();
+      result.classList.remove('is-arriving');
+    };
+    const ended = event => {
+      if (event.target === card && event.animationName === 'catalogue-card-away') finish();
+    };
+    change.finish = finish;
+    cardChange = change;
+    card.addEventListener('animationend', ended);
+    card.addEventListener('animationcancel', ended);
+    result.before(card);
+    result.classList.add('is-arriving');
+    // Rapid typing can remove/re-add the same class within one style update.
+    // Rewind its CSS animation without forcing a layout or running a frame loop.
+    for (const animation of result.getAnimations?.() || []) {
+      if (animation.animationName === 'catalogue-card-arrive') animation.currentTime = 0;
+    }
+    // A fallback also cleans up when the tab is hidden or CSS is unavailable.
+    change.timer = setTimeout(finish, 340);
+  }
+
+  function position() {
+    if (!dialog.open) return;
+    const viewport = window.visualViewport;
+    const width = viewport?.width || window.innerWidth;
+    const height = viewport?.height || window.innerHeight;
+    const offsetX = viewport?.offsetLeft || 0, offsetY = viewport?.offsetTop || 0;
+    dialog.classList.toggle('is-cramped', height < 540);
+    dialog.style.setProperty('--catalogue-available-height', `${Math.max(120, Math.floor(height - 24))}px`);
+    const bounds = dialog.getBoundingClientRect();
+    const x = Number.isFinite(anchor?.x) ? anchor.x + (anchor.width || 0) / 2 : width / 2;
+    const front = form.getBoundingClientRect();
+    const frontCenter = front.top - bounds.top + front.height / 2;
+    const y = Number.isFinite(anchor?.y) ? anchor.y + (anchor.height || 0) / 2 - frontCenter : (height - bounds.height) / 2;
+    const left = Math.max(offsetX + 12, Math.min(x - bounds.width / 2, offsetX + width - bounds.width - 12));
+    const top = Math.max(offsetY + 12, Math.min(y, offsetY + height - bounds.height - 12));
+    dialog.style.left = `${Math.round(left)}px`;
+    dialog.style.top = `${Math.round(top)}px`;
+    dialog.style.setProperty('--drawer-origin-x', `${Math.round(x - left)}px`);
+    dialog.style.setProperty('--drawer-origin-y', `${Math.round((anchor?.y || top + frontCenter) + (anchor?.height || 0) / 2 - top)}px`);
+    dialog.style.setProperty('--drawer-origin-scale', String(Math.min(1.25, Math.max(.2, (anchor?.width || front.width) / front.width))));
+  }
+
+  function update({ welcome = false } = {}) {
+    clearTimeout(raiseTimer); clearTimeout(statusTimer);
+    const wasRaised = dialog.classList.contains('is-raised');
+    status.textContent = '';
+    const term = fold(query.value);
+    const next = entries.find(entry => !term || entry.keys.some(key => key.includes(term))) || null;
+    const changed = next?.id !== selected?.id;
+    if (reduceMotion()) finishCardChange();
+    const oldCard = changed && !welcome && !reduceMotion() ? departingCard(wasRaised) : null;
+    dialog.classList.remove('is-raised');
+    selected = next;
+    result.disabled = !next;
+    dialog.classList.toggle('has-no-result', !next);
+    if (next) {
+      resultTitle.textContent = next.book.title;
+      resultAuthor.textContent = next.book.author;
+      resultOriginal.textContent = `After ${next.book.original}`;
+      resultNumber.textContent = `No. ${String(next.id + 1).padStart(3, '0')}`;
+      result.setAttribute('aria-label', `Find ${next.book.title}, after ${next.book.original}, by ${next.book.author}`);
+    } else {
+      resultTitle.textContent = 'A little mystery…';
+      resultAuthor.textContent = 'No matching card in this drawer.';
+      resultOriginal.textContent = 'Try a title, its original, or an author.';
+      resultNumber.textContent = 'Not filed here';
+      result.removeAttribute('aria-label');
+    }
+    if (oldCard) turnCard(oldCard);
+    const token = session;
+    raiseTimer = setTimeout(() => {
+      if (!active || closing || token !== session || composing) return;
+      if (selected) dialog.classList.add('is-raised');
+      status.textContent = selected
+        ? `${selected.book.title}. ${term ? 'First alphabetical match. ' : ''}Press Enter or select the card to find it on the shelf.`
+        : 'No matching book. Try another title or author.';
+    }, welcome || reduceMotion() ? 0 : 1000);
+  }
+
+  async function close({ restoreFocus = true, reason = 'cancel' } = {}) {
+    if (reason !== 'choose') ++choiceIntent;
+    if (closing) {
+      closeReason = reason;
+      closeRestoreFocus = restoreFocus;
+      if (reason === 'navigation' || reduceMotion()) {
+        clearTimeout(closeWaitTimer);
+        closeWaitResolve?.();
+      }
+      return closePromise;
+    }
+    if (!active && !dialog.open) return;
+    closing = true;
+    closeReason = reason;
+    closeRestoreFocus = restoreFocus;
+    const token = ++session;
+    clearTimers();
+    dialog.classList.remove('is-opening', 'is-raised');
+    dialog.classList.add('is-closing');
+    result.disabled = true;
+    query.disabled = true;
+    closePromise = (async () => {
+      if (dialog.open && reason !== 'navigation' && !reduceMotion()) await new Promise(resolve => {
+        closeWaitResolve = resolve;
+        closeWaitTimer = setTimeout(resolve, 280);
+      });
+      clearTimeout(closeWaitTimer);
+      closeWaitResolve = null;
+      if (token !== session) return;
+      if (dialog.open) dialog.close();
+      active = false;
+      closing = false;
+      closePromise = null;
+      trigger?.setAttribute('aria-expanded', 'false');
+      dialog.classList.remove('is-closing');
+      status.textContent = '';
+      if (closeReason === 'cancel') await onCancel?.();
+      if (closeRestoreFocus && previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+    })();
+    return closePromise;
+  }
+
+  async function choose() {
+    if (!selected || !active || closing || composing) return;
+    const id = selected.id;
+    const intent = ++choiceIntent;
+    await close({ restoreFocus: false, reason: 'choose' });
+    if (intent !== choiceIntent) return;
+    await onChoose?.(id);
+  }
+
+  async function open() {
+    if (active || closing) return;
+    active = true;
+    const token = ++session;
+    previousFocus = document.activeElement;
+    trigger?.setAttribute('aria-expanded', 'true');
+    try {
+      anchor = await onApproach?.();
+      if (!active || closing || token !== session) return;
+      if (anchor === null) { await close(); return; }
+      query.disabled = false;
+      query.value = '';
+      composing = false;
+      selected = null;
+      finishCardChange();
+      dialog.classList.remove('is-closing', 'is-raised');
+      dialog.showModal();
+      position();
+      dialog.classList.add('is-opening');
+      update({ welcome: true });
+      query.focus({ preventScroll: true });
+      openingTimer = setTimeout(() => {
+        if (token === session) dialog.classList.remove('is-opening');
+      }, reduceMotion() ? 0 : 420);
+    } catch (error) {
+      if (token !== session) return;
+      await close();
+      if (error?.name === 'AbortError') return;
+      announce('The catalogue drawer could not open. Please try again.');
+      console.warn('The catalogue drawer could not open.', error);
+    }
+  }
+
+  query.addEventListener('input', () => { if (!composing && !closing) update(); });
+  query.addEventListener('compositionstart', () => {
+    composing = true;
+    clearTimeout(raiseTimer); clearTimeout(statusTimer);
+    finishCardChange();
+    dialog.classList.remove('is-raised');
+  });
+  query.addEventListener('compositionend', () => { composing = false; if (!closing) update(); });
+  query.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !(composing || event.isComposing || event.keyCode === 229)) {
+      event.preventDefault();
+      event.stopPropagation();
+      void close();
+      return;
+    }
+    if (event.key === 'Enter' && (composing || event.isComposing || event.keyCode === 229)) event.preventDefault();
+  });
+  form.addEventListener('submit', event => { event.preventDefault(); void choose(); });
+  result.addEventListener('click', () => { void choose(); });
+  closeButton.addEventListener('click', () => { void close(); });
+  dialog.addEventListener('cancel', event => { event.preventDefault(); void close(); });
+  dialog.addEventListener('click', event => {
+    if (event.target !== dialog) return;
+    const bounds = dialog.getBoundingClientRect();
+    if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) void close();
+  });
+  window.addEventListener('resize', position);
+  motionPreference?.addEventListener?.('change', event => { if (event.matches) finishCardChange(); });
+  window.addEventListener('pagehide', () => { void close({ restoreFocus: false, reason: 'navigation' }); });
+  window.visualViewport?.addEventListener('resize', position);
+  window.visualViewport?.addEventListener('scroll', position);
+  return { open, close, get isOpen() { return active || closing; } };
+}
+
+return { createCatalogueSearch };
+})();
+
+// catalogue-journey.js
+const { createCatalogueJourney, nearestCatalogueDrawer } = (() => {
+// Camera journeys use procedural positions, not the subset of books currently
+// mounted in the SVG. The one glowing outline survives detail-level swaps.
+const SVG_NS='http://www.w3.org/2000/svg';
+const cancelled=()=>new DOMException('The catalogue journey was cancelled.','AbortError');
+
+function nearestCatalogueDrawer(view,getDrawers,tileWidth=1080,tileHeight=1120){
+ const left=view.x-view.w/(2*view.s),top=view.y-view.h/(2*view.s);
+ const right=left+view.w/view.s,bottom=top+view.h/view.s;
+ const candidates=[];
+ for(let ty=Math.floor(top/tileHeight);ty<=Math.floor(bottom/tileHeight);ty++){
+  for(let tx=Math.floor(left/tileWidth);tx<=Math.floor(right/tileWidth);tx++){
+   for(const drawer of getDrawers(tx,ty,view.seed)){
+    if(drawer.x+drawer.w>left&&drawer.y+drawer.h>top&&drawer.x<right&&drawer.y<bottom)candidates.push(drawer);
+   }
+  }
+ }
+ // A very close view can contain no drawer. Nearby bays provide a destination
+ // without changing the library or making the reader zoom back out manually.
+ if(!candidates.length){
+  const cx=Math.floor(view.x/tileWidth),cy=Math.floor(view.y/tileHeight);
+  for(let ty=cy-2;ty<=cy+2;ty++)for(let tx=cx-2;tx<=cx+2;tx++)candidates.push(...getDrawers(tx,ty,view.seed));
+ }
+ candidates.sort((a,b)=>Math.hypot(a.x+a.w/2-view.x,a.y+a.h/2-view.y)-Math.hypot(b.x+b.w/2-view.x,b.y+b.h/2-view.y)||a.y-b.y||a.x-b.x);
+ return candidates[0]||null;
+}
+
+function createCatalogueJourney({getView,getDrawers,findNearestBook,flyTo,cancelFlight,requestDraw,announce=()=>{},onFound=()=>{},drawing,stage,button}){
+ let origin=null,drawer=null,phase='idle',revision=0,lookup=null,highlight=null;
+ const hiddenSources=new Set();
+ let outline=null;
+ function busy(value){button?.setAttribute('aria-busy',String(value));}
+ function showSources(){for(const source of hiddenSources)source.classList.remove('is-catalogue-source');hiddenSources.clear();}
+ function clearOutline(){outline?.remove();outline=null;highlight=null;}
+ function attach(root){
+  if(!drawer||phase!=='open')return;
+  for(const node of root.querySelectorAll('.catalogue-drawer'))if(node.getAttribute('data-catalogue')===drawer.key){node.classList.add('is-catalogue-source');hiddenSources.add(node);}
+ }
+ function sync(){
+  const view=getView();
+  if(highlight&&highlight.seed!==view.seed)clearOutline();
+  if(outline&&outline.parentNode!==drawing)drawing.append(outline);
+  else if(outline&&drawing.lastElementChild!==outline)drawing.append(outline);
+ }
+ function reset(){
+  revision++;lookup?.abort();lookup=null;
+  if(phase==='approaching'||phase==='travelling')cancelFlight();
+  phase='idle';origin=null;drawer=null;showSources();clearOutline();busy(false);
+ }
+ function interrupt(){
+  if(phase==='finding'||phase==='travelling'){revision++;lookup?.abort();lookup=null;cancelFlight();phase='idle';origin=null;busy(false);}
+ }
+ async function approach(){
+  reset();const token=revision,view={...getView()};origin=view;
+  drawer=nearestCatalogueDrawer(view,getDrawers);
+  if(!drawer){origin=null;throw new Error('No catalogue drawer could be found.');}
+  phase='approaching';busy(true);
+  const scale=Math.min(6,Math.max(.4,Math.min(view.w*.66,420)/drawer.w));
+  // Leave room above the drawer for the cards to fan out when it opens.
+  const completed=await flyTo(drawer.x+drawer.w/2,drawer.y+drawer.h/2-view.h*.10/scale,scale,850);
+  if(token!==revision||!completed){if(token===revision){phase='idle';busy(false);}throw cancelled();}
+  phase='open';busy(false);attach(drawing);
+  const current=getView(),rect=stage.getBoundingClientRect();
+  return{x:rect.left+(drawer.x-current.x)*current.s+current.w/2,y:rect.top+(drawer.y-current.y)*current.s+current.h/2,width:drawer.w*current.s,height:drawer.h*current.s};
+ }
+ async function cancel(){
+  const previous=origin;revision++;lookup?.abort();lookup=null;
+  if(phase==='approaching'||phase==='travelling')cancelFlight();
+  phase='idle';origin=null;drawer=null;showSources();busy(false);
+  const view=getView();
+  if(previous&&previous.seed===view.seed&&previous.depth===view.depth){await flyTo(previous.x,previous.y,previous.s,600);}
+ }
+ function drawHighlight(book){
+  clearOutline();highlight=book;
+  const corners=book.corners||book.points;
+  if(!Array.isArray(corners)||corners.length<4)return;
+  outline=document.createElementNS(SVG_NS,'g');outline.classList.add('catalogue-book-highlight');
+  outline.setAttribute('aria-hidden','true');outline.setAttribute('pointer-events','none');outline.setAttribute('data-book',String(book.bookId));
+  outline.setAttribute('data-book-key',book.occurrenceKey||'');
+  const points=corners.map(point=>Array.isArray(point)?point.join(','):`${point.x},${point.y}`).join(' ');
+  for(const kind of ['glow','outline']){
+   const polygon=document.createElementNS(SVG_NS,'polygon');polygon.classList.add(`catalogue-book-${kind}`);
+   polygon.setAttribute('points',points);polygon.setAttribute('fill','none');polygon.setAttribute('vector-effect','non-scaling-stroke');
+   polygon.setAttribute('stroke',kind==='glow'?'#ffe28a':'#fff5c0');polygon.setAttribute('stroke-width',kind==='glow'?'7':'2.5');polygon.setAttribute('stroke-linejoin','round');
+   outline.append(polygon);
+  }
+  drawing.append(outline);requestDraw();
+ }
+ async function choose(bookId){
+  const previous=origin||{...getView()},token=++revision;
+  lookup?.abort();lookup=new AbortController();const signal=lookup.signal;
+  showSources();drawer=null;phase='finding';busy(true);
+  try{
+   const book=await findNearestBook(bookId,previous,{signal});
+   if(token!==revision||signal.aborted)return;
+   if(!book)throw new Error('That volume could not be located.');
+   const view=getView();if(view.seed!==previous.seed)return;
+   phase='travelling';
+   const bounds=book.bounds||{x:book.x-book.w/2,y:book.y-book.h/2,w:book.w,h:book.h};
+   const width=bounds.w??bounds.width,height=bounds.h??bounds.height;
+   const scale=Math.min(9,Math.max(1.15,Math.min(view.w*.45/Math.max(1,width),view.h*.58/Math.max(1,height))));
+   const completed=await flyTo(book.x,book.y,scale,1050);
+   if(token!==revision||signal.aborted||!completed)return;
+   phase='found';origin=null;lookup=null;busy(false);drawHighlight(book);
+   stage.focus({preventScroll:true});onFound(book);
+  }catch(error){
+   if(token!==revision||signal.aborted||error?.name==='AbortError')return;
+   phase='idle';busy(false);announce('That card slipped out of place. Please try searching again.');
+  }finally{
+   if(token===revision&&phase!=='found'){lookup=null;origin=null;phase='idle';busy(false);}
+  }
+ }
+ return{approach,choose,cancel,reset,interrupt,sync,attach,get phase(){return phase;},get highlightedBook(){return highlight?.bookId??null;}};
+}
+
+return { createCatalogueJourney, nearestCatalogueDrawer };
+})();
+
 // app.js
+
+
 
 
 
@@ -4447,7 +5129,7 @@ let poolBytes=0, poolNodes=0, markupBytes=0, buildFrame=0, buildQueue=[], desire
 let stageRect, currentQuality='distant', labelScale=0, lastInput=-Infinity, settleTimer=0;
 const HOME_ZOOM=.4;
 const state={x:W*.5,y:H*.5,s:1,seed:17,depth:0,w:0,h:0,base:1,zoomOffset:0};
-let scheduled=false, animation=0, pointerGesture=null, dragged=false, toastTimer, downTarget=null;
+let scheduled=false, animation=0, flightCompletion=null, pointerGesture=null, dragged=false, toastTimer, downTarget=null;
 const pointers=new Map(), reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const DETAIL_FADE_MS=180,MAX_DETAIL_TRANSITIONS=2,MAX_DETAIL_NODES=12_000;
 let skipFadesUntil=0;
@@ -4464,6 +5146,20 @@ const reader=createBookReader({
  onClose:()=>{document.body.classList.remove('is-reading');stage.focus({preventScroll:true});},
  announce
 });
+const catalogueJourney=createCatalogueJourney({
+ getView:()=>({...state}),getDrawers,findNearestBook,flyTo,cancelFlight,requestDraw,announce,drawing,stage,button:$('search-btn'),
+ onFound:book=>{const item=BOOKS[book.bookId];if(item){toast(item.title,`A little twist on ${item.original} · ${item.author}`,item.blurb);announce(`Found ${item.title}. The nearest copy is outlined in gold.`);}}
+});
+const catalogue=createCatalogueSearch({
+ books:BOOKS,announce,
+ onApproach:()=>{reader.close(true);reader.cancelOffer();clearTimeout(toastTimer);$('book-toast').hidden=true;detailTransitions.finishAll();return catalogueJourney.approach();},
+ onChoose:id=>catalogueJourney.choose(id),onCancel:()=>catalogueJourney.cancel()
+});
+function interruptCatalogue(){
+ if(catalogue.isOpen){void catalogue.close({reason:'navigation',restoreFocus:false});catalogueJourney.reset();}
+ else catalogueJourney.interrupt();
+}
+function resetCatalogue(){void catalogue.close({reason:'navigation',restoreFocus:false});catalogueJourney.reset();}
 
 const QUALITY_LEVELS=['overview','distant','compact','full'], QUALITY_BOUNDS=[.12,.48,.95];
 const labelBucket=scale=>2**(Math.floor(Math.log2(scale)*2)/2);
@@ -4520,6 +5216,7 @@ function rememberTile(key,record) {
  }
 }
 function clearTiles() {
+ catalogueJourney.reset();
  detailTransitions.finishAll();
  sceneRevision++;desiredTiles.clear();buildQueue=[];
  if(buildFrame)cancelAnimationFrame(buildFrame);buildFrame=0;
@@ -4566,7 +5263,7 @@ function installTile(spec,reserved=null) {
   if(!fade)rememberTile(oldKey,old);
  }
  tiles.set(key,record);
- try{scene.attach(record,state);fade?.start([record.el,record.motionEl].filter(Boolean));}
+ try{scene.attach(record,state);catalogueJourney.attach(record.el);catalogueJourney.sync();fade?.start([record.el,record.motionEl].filter(Boolean));}
  catch(error){fade?.finish();throw error;}
 }
 function waitForDetailSlot(spec){
@@ -4624,6 +5321,8 @@ function updatePortal(p,quality,pixelScale=0) {
   if(content)registerPortal(p.record,content,child.seed,{x:p.x+child.x*p.unit,y:p.y+child.y*p.unit,w:child.w*p.unit,h:child.h*p.unit},p.unit*child.k,p.depth+1,p);
  }
  scene.refresh(p.record,state);
+ catalogueJourney.attach(p.record.el);
+ catalogueJourney.sync();
  if(fade){motionCopies=[...p.record.motionEl?.querySelectorAll('[data-detail-portal]')||[]];fade.start([incoming,...motionCopies]);}
 }
 function scheduleBuild() {
@@ -4724,6 +5423,7 @@ function render() {
   installTile(spec,reserved.get(spec.key));return false;
  });
  for(const record of tiles.values())scene.sync(record,state);
+ catalogueJourney.sync();
  scheduleBuild();
  const logZoom=Math.log10(state.s/state.base)+state.zoomOffset;
  const zoomLabel=logZoom>4?`10^${(logZoom+2).toFixed(1)}%`:logZoom< -2?`10^${(logZoom+2).toFixed(1)}%`:`${Math.round(100*10**logZoom)}%`;
@@ -4739,32 +5439,37 @@ function resize(initial=false) {
  if(initial){state.base=Math.max(.38,state.h/H*1.08);state.s=state.base*HOME_ZOOM;}
  requestDraw();
 }
-function cancelFlight(){if(animation)cancelAnimationFrame(animation);animation=0;}
+function cancelFlight(){if(animation)cancelAnimationFrame(animation);animation=0;const complete=flightCompletion;flightCompletion=null;complete?.(false);}
 function flyTo(x,y,s,duration=700,done) {
  touchNavigation();
  cancelFlight();const from={x:state.x,y:state.y,s:state.s},start=performance.now(),len=reduced.matches?0:duration;
+ let complete;const journey=new Promise(resolve=>{complete=resolve;});flightCompletion=complete;
  function step(now) {
   const t=len?Math.min(1,(now-start)/len):1,u=t*t*(3-2*t);
   state.x=from.x+(x-from.x)*u;state.y=from.y+(y-from.y)*u;state.s=from.s*Math.exp(Math.log(s/from.s)*u);
   // Wait to change coordinate systems until the flight is complete.
-  if(t===1){animation=0;touchNavigation();requestDraw();done?.();}else{animation=requestAnimationFrame(step);requestDraw();}
+  if(t===1){animation=0;flightCompletion=null;touchNavigation();requestDraw();done?.();complete(true);}else{animation=requestAnimationFrame(step);requestDraw();}
  }
  animation=requestAnimationFrame(step);
+ return journey;
 }
 function zoomAt(factor,px=state.w/2,py=state.h/2) {
+ interruptCatalogue();
  touchNavigation();
  cancelFlight();const x=state.x+(px-state.w/2)/state.s,y=state.y+(py-state.h/2)/state.s;
  const next=Math.max(.018,Math.min(40,state.s*Math.max(.02,Math.min(50,factor))));state.x=x-(px-state.w/2)/next;state.y=y-(py-state.h/2)/next;state.s=next;
  if(state.s>24){const p=nearestPortal();state.x=p.tx*W+p.x+p.w/2;state.y=p.ty*H+p.y+p.h/2;toast('A smaller world is waiting','Follow the doorway to keep looking closer.');}
  requestDraw();
 }
-function pan(dx,dy=0){cancelFlight();flyTo(state.x+dx/state.s,state.y+dy/state.s,state.s,360);}
+function pan(dx,dy=0){interruptCatalogue();cancelFlight();flyTo(state.x+dx/state.s,state.y+dy/state.s,state.s,360);}
 function goInside(tx,ty) {
+ interruptCatalogue();
  const p={...getPortal(tx,ty,state.seed),tx,ty};
  const s=Math.max(state.w/p.w,state.h/p.h)*1.45;
  flyTo(tx*W+p.x+p.w/2,ty*H+p.y+p.h/2,s,1100);
 }
 function home(){
+ resetCatalogue();
  reader.close(true);reader.cancelOffer();
  cancelFlight();clearTimeout(settleTimer);settleTimer=0;lastInput=-Infinity;
  const held=[...pointers.keys()];pointers.clear();pointerGesture=null;downTarget=null;dragged=held.length>0;
@@ -4774,10 +5479,11 @@ function home(){
 }
 
 stage.addEventListener('wheel',e=>{
+ if(catalogue.isOpen)return;
  if(e.target.closest('button,a'))return;
  e.preventDefault();const rect=stageRect;
  // Normal scrolling zooms into the point beneath the cursor; shift-scroll wanders.
- if(e.shiftKey){touchNavigation();cancelFlight();state.x+=(e.deltaY+e.deltaX)/state.s;requestDraw();}
+ if(e.shiftKey){interruptCatalogue();touchNavigation();cancelFlight();state.x+=(e.deltaY+e.deltaX)/state.s;requestDraw();}
  else {const delta=e.deltaMode===1?e.deltaY*16:e.deltaMode===2?e.deltaY*state.h:e.deltaY;zoomAt(Math.exp(-Math.max(-160,Math.min(160,delta))*.0025),e.clientX-rect.left,e.clientY-rect.top);}
 },{passive:false});
 
@@ -4787,7 +5493,9 @@ function gestureBaseline() {
  pointerGesture={x:state.x,y:state.y,s:state.s,mx:mid.x,my:mid.y,d:ps.length>1?Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y):0};
 }
 stage.addEventListener('pointerdown',e=>{
+ if(catalogue.isOpen)return;
  if(e.target.closest('button,a,dialog')||e.button!==0)return;
+ interruptCatalogue();
  touchNavigation();cancelFlight();pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===1)dragged=false;
  downTarget=e.target;
  stage.setPointerCapture(e.pointerId);gestureBaseline();
@@ -4807,26 +5515,32 @@ function release(e){pointers.delete(e.pointerId);touchNavigation();if(pointers.s
 stage.addEventListener('pointerup',release);stage.addEventListener('pointercancel',release);
 stage.addEventListener('lostpointercapture',e=>{if(pointers.has(e.pointerId))release(e);});
 stage.addEventListener('click',e=>{
+ if(catalogue.isOpen)return;
  if(dragged){dragged=false;return;}
  const target=e.target===stage&&downTarget?.isConnected?downTarget:e.target;
  downTarget=null;
+ if(target.closest('.catalogue-drawer')){void catalogue.open();return;}
  const item=target.closest('[data-find],[data-book]');
  if(item?.hasAttribute('data-book')){bookNote(Number(item.dataset.book),item);return;}
  if(item){discover(Number(item.dataset.find));return;}
  let portal=target.closest('.portal');if(portal){while(portal.parentElement.closest('.portal'))portal=portal.parentElement.closest('.portal');const [x,y]=portal.dataset.portal.split(',').map(Number);goInside(x,y);}
 });
-stage.addEventListener('dblclick',e=>{if(e.target.closest('button,a'))return;const rect=stageRect;zoomAt(1.8,e.clientX-rect.left,e.clientY-rect.top);});
+stage.addEventListener('dblclick',e=>{if(catalogue.isOpen||e.target.closest('button,a,.catalogue-drawer'))return;const rect=stageRect;zoomAt(1.8,e.clientX-rect.left,e.clientY-rect.top);});
 
 $('pan-left').onclick=()=>pan(-state.w*.55);$('pan-right').onclick=()=>pan(state.w*.55);
 document.querySelector('.wordmark').onclick=e=>{e.preventDefault();home();stage.focus();};
 $('zoom-in').onclick=()=>zoomAt(1.4);$('zoom-out').onclick=()=>zoomAt(1/1.4);$('home-btn').onclick=home;
+$('search-btn').onclick=()=>{void catalogue.open();};
 $('explore-btn').onclick=()=>{const p=nearestPortal();goInside(p.tx,p.ty);};
 function updateMotion(){document.body.classList.toggle('paused',paused);$('motion-btn').setAttribute('aria-pressed',String(paused));$('motion-btn').setAttribute('aria-label',paused?'Resume little animations':'Pause little animations');$('motion-btn').title=paused?'Resume little animations':'Pause little animations';}
 $('motion-btn').onclick=()=>{paused=!paused;updateMotion();};updateMotion();
 reduced.addEventListener('change',e=>{if(e.matches)detailTransitions.finishAll();paused=e.matches;updateMotion();});
-document.addEventListener('visibilitychange',()=>{if(document.hidden)detailTransitions.finishAll();document.body.classList.toggle('is-background',document.hidden);if(!document.hidden){requestDraw();scheduleBuild();}});
-window.addEventListener('pagehide',()=>detailTransitions.finishAll());
+document.addEventListener('visibilitychange',()=>{if(document.hidden){detailTransitions.finishAll();resetCatalogue();}document.body.classList.toggle('is-background',document.hidden);if(!document.hidden){requestDraw();scheduleBuild();}});
+window.addEventListener('pagehide',()=>{detailTransitions.finishAll();resetCatalogue();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&catalogue.isOpen&&!$('catalogue-search').open){e.preventDefault();void catalogue.close();}});
 stage.addEventListener('keydown',e=>{
+ if(catalogue.isOpen||e.isComposing)return;
+ if(e.target.closest('.catalogue-drawer')){if(e.key==='Enter'||e.key===' '){e.preventDefault();void catalogue.open();}return;}
  if(e.target.closest('button,a,input,select'))return;
  const actions={'ArrowLeft':()=>pan(-180),'ArrowRight':()=>pan(180),'ArrowUp':()=>pan(0,-160),'ArrowDown':()=>pan(0,160),'+':()=>zoomAt(1.35),'=':()=>zoomAt(1.35),'-':()=>zoomAt(1/1.35),'Home':home,'Enter':()=>{const p=nearestPortal();goInside(p.tx,p.ty);},'d':()=>{const next=DISCOVERIES.findIndex((_,i)=>!found.has(i));discover(next<0?0:next);}};
  if(actions[e.key]){e.preventDefault();actions[e.key]();}
@@ -4860,7 +5574,7 @@ function saveSVG() {
 $('export-btn').onclick=saveSVG;
 updateDiscoveryCounter();resize(true);new ResizeObserver(()=>resize()).observe(stage);
 // Read-only diagnostics make precision, tile limits, and recursive levels inspectable.
-window.library={get state(){return {...state,parents:parents.length,tiles:tiles.size,pooledTiles:tilePool.size,pooledBytes:poolBytes,pooledNodes:poolNodes,markupBytes,portalRecords:portalRegistry.size,queuedTiles:buildQueue.length,pendingBuild:buildFrame!==0,pendingDetails:settleTimer!==0,quality:currentQuality,labelScale,discoveries:found.size,fadingDetails:detailTransitions.activeCount,retiredDetailNodes:detailTransitions.retainedNodes,peakDetailNodes:detailTransitions.peakNodes};},home,zoomAt,goInside,saveSVG};
+window.library={get state(){return {...state,parents:parents.length,tiles:tiles.size,pooledTiles:tilePool.size,pooledBytes:poolBytes,pooledNodes:poolNodes,markupBytes,portalRecords:portalRegistry.size,queuedTiles:buildQueue.length,pendingBuild:buildFrame!==0,pendingDetails:settleTimer!==0,quality:currentQuality,labelScale,discoveries:found.size,fadingDetails:detailTransitions.activeCount,retiredDetailNodes:detailTransitions.retainedNodes,peakDetailNodes:detailTransitions.peakNodes,cataloguePhase:catalogueJourney.phase,highlightedBook:catalogueJourney.highlightedBook};},home,zoomAt,goInside,saveSVG};
 
 </script>
   </head>
@@ -4966,6 +5680,9 @@ window.library={get state(){return {...state,parents:parents.length,tiles:tiles.
           </button>
         </div>
         <span class="dock-divider" aria-hidden="true"></span>
+        <button id="search-btn" class="icon-button" type="button" aria-label="Search the card catalogue" title="Search the card catalogue" aria-haspopup="dialog" aria-controls="catalogue-search" aria-expanded="false">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="4.5"/><path d="m12 12 4 4M6.5 8.5h4"/></svg>
+        </button>
         <button id="home-btn" class="icon-button" type="button" aria-label="Return to the beginning" title="Return to the beginning (Home)">
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m3 9 7-6 7 6M5 8v9h10V8M8 17v-6h4v6"/></svg>
         </button>
@@ -4986,6 +5703,38 @@ window.library={get state(){return {...state,parents:parents.length,tiles:tiles.
       <a class="inspiration-credit" href="https://en.wikipedia.org/wiki/Colin_Thompson_(writer)" target="_blank" rel="noopener noreferrer">Inspired by Colin Thompson</a>
       <p id="status" class="sr-only" role="status" aria-live="polite"></p>
     </main>
+
+    <dialog id="catalogue-search" class="catalogue-search" aria-label="The card catalogue">
+      <div class="catalogue-cabinet">
+        <button id="catalogue-close" class="catalogue-close" type="button" aria-label="Close the catalogue drawer">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg>
+        </button>
+        <div class="catalogue-tray">
+          <div class="catalogue-paper-stack" aria-hidden="true">
+            <span class="catalogue-divider">A–F</span>
+            <span class="catalogue-divider">G–L</span>
+            <span class="catalogue-divider">M–R</span>
+            <span class="catalogue-divider">S–Z</span>
+          </div>
+          <button id="catalogue-result" class="catalogue-result" type="button">
+            <span id="catalogue-result-number" class="catalogue-card-number"></span>
+            <span id="catalogue-result-title" class="catalogue-card-title"></span>
+            <span id="catalogue-result-author" class="catalogue-card-author"></span>
+            <span id="catalogue-result-original" class="catalogue-card-original"></span>
+            <span class="catalogue-card-action">Find this book <span aria-hidden="true">↗</span></span>
+            <span class="catalogue-card-hole" aria-hidden="true"></span>
+          </button>
+          <form id="catalogue-form" class="catalogue-front" role="search">
+            <div class="catalogue-label-holder">
+              <label for="catalogue-query">Find a book</label>
+              <input id="catalogue-query" type="search" autocomplete="off" spellcheck="false" enterkeyhint="search" placeholder="Start a small search…" autofocus />
+            </div>
+            <span class="catalogue-handle" aria-hidden="true"></span>
+          </form>
+        </div>
+        <p id="catalogue-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+      </div>
+    </dialog>
 
     <dialog id="book-reader" class="book-reader" aria-labelledby="reader-title">
       <div class="reader-heading">

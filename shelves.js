@@ -101,7 +101,7 @@ function bookCorners(p, width, height) {
   return { x, y, corners: [[0,0],[width,0],[0,-height],[width,-height]].map(([a,b]) => ({ x:x+a*p.tx-b*p.ty, y:y+a*p.ty+b*p.tx })) };
 }
 
-function booksAlong(points, d, g, seed, index, detail, quality, m) {
+function booksAlong(points, d, g, seed, index, detail, quality, m,metadataOnly=false) {
   const r = random(hash(`${seed}:${index}:bending-books`));
   const nominal = Math.max(10,Math.min(22,d.width*.049));
   let cursor = Math.max(9,g.thickness), out = '', i = 0;
@@ -113,9 +113,9 @@ function booksAlong(points, d, g, seed, index, detail, quality, m) {
     let height = Math.max(23,g.bookHeight*(.70+r()*.28)*turn), box = bookCorners(p,width,height);
     for (let attempts=0; attempts<16 && box.corners.some(c=>c.x<3||c.x>d.width-3||c.y<3||c.y>d.height-3); attempts++) { height*=.88; box=bookCorners(p,width,height); }
     if (height>=17 && box.corners.every(c=>c.x>=2&&c.x<=d.width-2&&c.y>=2&&c.y<=d.height-2) && !occupiesNook(box.corners,d)) {
-      out += `<g class="shelf-following-book" data-shelf-path="${index}" data-path-distance="${num(center)}" data-tangent-angle="${num(p.angle)}" data-anchor="${num(p.x)},${num(p.y)}">`;
+      if(!metadataOnly)out += `<g class="shelf-following-book" data-shelf-path="${index}" data-path-distance="${num(center)}" data-tangent-angle="${num(p.angle)}" data-anchor="${num(p.x)},${num(p.y)}">`;
       out += renderBook({x:box.x,y:box.y,width,height,angle:p.angle,id:Math.floor(r()*BOOKS.length),seed:hash(`${seed}:${index}:${i}:spine`),detail:detail?quality:'preview'});
-      out += '</g>';
+      if(!metadataOnly)out += '</g>';
     }
     cursor += width+.55+r()*.45; i++;
   }
@@ -201,6 +201,14 @@ function render(q,seed,detail,quality='full') {
 
 /** A substantial architectural return, with books following the whole tangent. */
 export function renderBendingShelf(q,seed=1,detail=true,quality='full') { return render(q,seed,detail,quality); }
+
+/** Traverse the same placement code without structural SVG or decorations.
+ * Call inside captureBookGeometry and its room's translation transform. */
+export function collectBendingBooks(q,seed=1) {
+  const d=dimensions(q);if(!d)return;
+  const g=geometry(d);
+  for(const index of g.order)booksAlong(g.paths[index],d,g,seed,index,true,'preview',metrics(g.paths[index]),true);
+}
 
 /** The same shelf geometry with inexpensive colored book shapes for miniatures. */
 export function overviewBendingShelf(q,seed=1,quality='preview') { return render(q,seed,false,quality); }
